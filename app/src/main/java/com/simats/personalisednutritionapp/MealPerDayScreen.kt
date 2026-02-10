@@ -13,15 +13,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -44,25 +40,18 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.simats.personalisednutritionapp.ui.theme.Green
 
-data class HealthCondition(val name: String, val description: String, val icon: String)
+data class MealOption(val count: Int, val description: String)
 
 @Composable
-fun HealthConditionsScreen(navController: NavController) {
+fun MealPerDayScreen(navController: NavController) {
 
-    val healthConditions = listOf(
-        HealthCondition("None", "No health conditions", "✅"),
-        HealthCondition("Diabetes", "Blood sugar management", "🩺"),
-        HealthCondition("PCOS", "Hormonal balance", "💊"),
-        HealthCondition("Thyroid Issues", "Thyroid regulation", "🦋"),
-        HealthCondition("High Blood Pressure", "Blood pressure control", "❤️"),
-        HealthCondition("Low Blood Pressure", "Blood pressure support", "💙"),
-        HealthCondition("High Cholesterol", "Cholesterol management", "🫀"),
-        HealthCondition("Digestive Issues", "Gut health", "🌿"),
-        HealthCondition("Anemia", "Iron deficiency", "🩸"),
-        HealthCondition("Food Allergies", "Allergy management", "⚠️")
+    val mealOptions = listOf(
+        MealOption(3, "Breakfast, Lunch, Dinner"),
+        MealOption(4, "- Breakfast, Lunch, Snack, Dinner"),
+        MealOption(5, "- Breakfast, Snack, Lunch, Snack, Dinner")
     )
 
-    var selectedConditions by remember { mutableStateOf(setOf(healthConditions.first())) }
+    var selectedMealOption by remember { mutableStateOf(mealOptions.first()) }
 
     Column(
         modifier = Modifier
@@ -73,7 +62,6 @@ fun HealthConditionsScreen(navController: NavController) {
                 )
             )
     ) {
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -94,8 +82,8 @@ fun HealthConditionsScreen(navController: NavController) {
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 Icon(
-                    Icons.Outlined.FavoriteBorder,
-                    contentDescription = "Health",
+                    Icons.Default.RestaurantMenu,
+                    contentDescription = "Meals",
                     tint = Color.White,
                     modifier = Modifier.size(32.dp)
                 )
@@ -105,20 +93,20 @@ fun HealthConditionsScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                "Health Conditions",
+                "Meals Per Day",
                 color = Color.White,
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold
             )
 
             Text(
-                "Select any conditions you have",
+                "How many meals do you eat in a day?",
                 color = Color.White.copy(alpha = 0.9f)
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Step Indicator (Step 6)
+            // Step Indicator (Step 7)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -131,7 +119,7 @@ fun HealthConditionsScreen(navController: NavController) {
                             .weight(1f)
                             .height(4.dp)
                             .background(
-                                if (index <= 5) Color.White else Color.White.copy(alpha = 0.4f),
+                                if (index <= 6) Color.White else Color.White.copy(alpha = 0.4f),
                                 RoundedCornerShape(2.dp)
                             )
                     )
@@ -145,79 +133,31 @@ fun HealthConditionsScreen(navController: NavController) {
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
-
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(24.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    healthConditions.forEach { condition ->
-                        HealthConditionCard(
-                            condition = condition,
-                            isSelected = selectedConditions.contains(condition),
-                            onClick = {
-                                val newSelection = selectedConditions.toMutableSet()
-                                if (condition.name == "None") {
-                                    newSelection.clear()
-                                    newSelection.add(condition)
-                                } else {
-                                    newSelection.removeIf { it.name == "None" }
-                                    if (newSelection.contains(condition)) {
-                                        newSelection.remove(condition)
-                                    } else {
-                                        newSelection.add(condition)
-                                    }
-                                    if (newSelection.isEmpty()) {
-                                        newSelection.add(healthConditions.first())
-                                    }
-                                }
-                                selectedConditions = newSelection
-                            }
+                Column(modifier = Modifier.weight(1f)) {
+                    mealOptions.forEach { mealOption ->
+                        MealOptionCard(
+                            option = mealOption,
+                            isSelected = selectedMealOption == mealOption,
+                            onClick = { selectedMealOption = mealOption }
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Green.copy(alpha = 0.1f)),
-                    border = BorderStroke(1.dp, Green.copy(alpha = 0.3f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("💡", fontSize = 16.sp)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "Your food and nutrition recommendations will be customized based on your health conditions.",
-                            fontSize = 12.sp,
-                            color = Color.DarkGray
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
                 Button(
-                    onClick = {
-                        navController.navigate("mealPerDay")
-                    },
+                    onClick = { /* TODO: Navigate to next screen */ },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Green
-                    ),
-                    enabled = selectedConditions.isNotEmpty()
+                    )
                 ) {
                     Text("Continue", color = Color.White)
                 }
@@ -227,16 +167,14 @@ fun HealthConditionsScreen(navController: NavController) {
 }
 
 @Composable
-fun HealthConditionCard(condition: HealthCondition, isSelected: Boolean, onClick: () -> Unit) {
+fun MealOptionCard(option: MealOption, isSelected: Boolean, onClick: () -> Unit) {
     val borderColor = if (isSelected) Green else Color.LightGray
     val containerColor = if (isSelected) Green.copy(alpha = 0.1f) else Color.White
-    val titleColor = if (isSelected) Color.Black else Color.DarkGray
-    val subtitleColor = if (isSelected) Color.DarkGray else Color.Gray
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),
         border = BorderStroke(1.dp, borderColor)
@@ -245,39 +183,25 @@ fun HealthConditionCard(condition: HealthCondition, isSelected: Boolean, onClick
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = condition.icon, fontSize = 24.sp)
-
-            Spacer(modifier = Modifier.width(16.dp))
-
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = condition.name,
+                    text = "${option.count} Meals",
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
-                    color = titleColor
+                    fontSize = 18.sp
                 )
                 Text(
-                    text = condition.description,
-                    fontSize = 12.sp,
-                    color = subtitleColor
+                    text = option.description,
+                    fontSize = 14.sp,
+                    color = Color.Gray
                 )
             }
-
-
             if (isSelected) {
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .background(Green, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = "Selected",
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Selected",
+                    tint = Green,
+                    modifier = Modifier.size(24.dp)
+                )
             }
         }
     }
