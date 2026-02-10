@@ -150,7 +150,7 @@ fun MealPerDayScreen(navController: NavController) {
                 }
 
                 Button(
-                    onClick = { /* TODO: Navigate to next screen */ },
+                    onClick = { navController.navigate("home") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),

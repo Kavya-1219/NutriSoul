@@ -208,7 +208,23 @@ fun HealthConditionsScreen(navController: NavController) {
 
                 Button(
                     onClick = {
-                        navController.navigate("mealPerDay")
+                        val conditionsRequiringDetails = setOf(
+                            "Diabetes",
+                            "Thyroid Issues",
+                            "High Blood Pressure",
+                            "Low Blood Pressure",
+                            "High Cholesterol",
+                            "Food Allergies"
+                        )
+
+                        val relevantConditions = selectedConditions.filter { it.name in conditionsRequiringDetails }
+
+                        if (relevantConditions.isNotEmpty()) {
+                            val selectedConditionNames = relevantConditions.joinToString(",") { it.name }
+                            navController.navigate("healthDetails/$selectedConditionNames")
+                        } else {
+                            navController.navigate("mealPerDay")
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()

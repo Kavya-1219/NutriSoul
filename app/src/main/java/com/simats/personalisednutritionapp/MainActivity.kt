@@ -9,7 +9,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.simats.personalisednutritionapp.ui.theme.PersonalisedNutritionAppTheme
 import com.simats.personalisednutritionapp.BodyDetailsScreen
-
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -161,6 +162,22 @@ fun AppNavigation() {
         // Health Conditions Screen
         composable("healthConditions") {
             HealthConditionsScreen(navController = navController)
+        }
+
+        // Health Details Screen
+        composable(
+            "healthDetails/{conditionNames}",
+            arguments = listOf(navArgument("conditionNames") { type = NavType.StringType })
+        ) {
+            HealthDetailsScreen(
+                navController = navController,
+                conditionNames = it.arguments?.getString("conditionNames")
+            )
+        }
+
+        // Meal Per Day Screen
+        composable("mealPerDay") {
+            MealPerDayScreen(navController = navController)
         }
     }
 }
