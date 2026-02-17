@@ -18,7 +18,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.simats.personalisednutritionapp.ui.theme.Green
+import com.simats.personalisednutritionapp.ui.theme.PrimaryGreen
 import kotlinx.coroutines.delay
 
 @Composable
@@ -26,7 +26,7 @@ fun SplashScreen(onTimeout: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Green),
+            .background(PrimaryGreen),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

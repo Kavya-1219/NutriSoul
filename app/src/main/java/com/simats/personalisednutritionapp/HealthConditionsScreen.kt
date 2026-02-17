@@ -3,17 +3,7 @@ package com.simats.personalisednutritionapp
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,18 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -42,12 +22,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.simats.personalisednutritionapp.ui.theme.Green
+import com.simats.personalisednutritionapp.data.UserViewModel
 
 data class HealthCondition(val name: String, val description: String, val icon: String)
 
 @Composable
-fun HealthConditionsScreen(navController: NavController) {
+fun HealthConditionsScreen(navController: NavController, userViewModel: UserViewModel) {
 
     val healthConditions = listOf(
         HealthCondition("None", "No health conditions", "✅"),
@@ -64,12 +44,12 @@ fun HealthConditionsScreen(navController: NavController) {
 
     var selectedConditions by remember { mutableStateOf(setOf(healthConditions.first())) }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(Green, Color(0xFF81C784))
+                    listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
                 )
             )
     ) {
@@ -77,7 +57,7 @@ fun HealthConditionsScreen(navController: NavController) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 48.dp, start = 16.dp, end = 16.dp),
+                .padding(top = 16.dp, start = 16.dp, end = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
@@ -125,7 +105,7 @@ fun HealthConditionsScreen(navController: NavController) {
                     .padding(horizontal = 32.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                repeat(7) { index ->
+                repeat(6) { index ->
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -141,7 +121,9 @@ fun HealthConditionsScreen(navController: NavController) {
         }
 
         Card(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .fillMaxHeight(0.78f),
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
@@ -187,8 +169,8 @@ fun HealthConditionsScreen(navController: NavController) {
 
                 Card(
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Green.copy(alpha = 0.1f)),
-                    border = BorderStroke(1.dp, Green.copy(alpha = 0.3f))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
                 ) {
                     Row(
                         modifier = Modifier.padding(12.dp),
@@ -208,22 +190,24 @@ fun HealthConditionsScreen(navController: NavController) {
 
                 Button(
                     onClick = {
-                        val conditionsRequiringDetails = setOf(
-                            "Diabetes",
-                            "Thyroid Issues",
-                            "High Blood Pressure",
-                            "Low Blood Pressure",
-                            "High Cholesterol",
-                            "Food Allergies"
+                        val user = userViewModel.user.value.copy(
+                            healthConditions = selectedConditions.map { it.name }.toList()
                         )
+                        userViewModel.updateUser(user)
 
-                        val relevantConditions = selectedConditions.filter { it.name in conditionsRequiringDetails }
+                        val requiresDetails = selectedConditions.any { 
+                            it.name == "High Blood Pressure" || 
+                            it.name == "Low Blood Pressure" || 
+                            it.name == "Thyroid Issues" || 
+                            it.name == "Diabetes" || 
+                            it.name == "High Cholesterol" || 
+                            it.name == "Food Allergies"
+                        }
 
-                        if (relevantConditions.isNotEmpty()) {
-                            val selectedConditionNames = relevantConditions.joinToString(",") { it.name }
-                            navController.navigate("healthDetails/$selectedConditionNames")
+                        if (requiresDetails) {
+                            navController.navigate(Screen.HealthDetails.route)
                         } else {
-                            navController.navigate("mealPerDay")
+                            navController.navigate(Screen.MealsPerDay.route)
                         }
                     },
                     modifier = Modifier
@@ -231,7 +215,7 @@ fun HealthConditionsScreen(navController: NavController) {
                         .height(56.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Green
+                        containerColor = MaterialTheme.colorScheme.primary
                     ),
                     enabled = selectedConditions.isNotEmpty()
                 ) {
@@ -244,8 +228,8 @@ fun HealthConditionsScreen(navController: NavController) {
 
 @Composable
 fun HealthConditionCard(condition: HealthCondition, isSelected: Boolean, onClick: () -> Unit) {
-    val borderColor = if (isSelected) Green else Color.LightGray
-    val containerColor = if (isSelected) Green.copy(alpha = 0.1f) else Color.White
+    val borderColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.LightGray
+    val containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.White
     val titleColor = if (isSelected) Color.Black else Color.DarkGray
     val subtitleColor = if (isSelected) Color.DarkGray else Color.Gray
 
@@ -284,7 +268,7 @@ fun HealthConditionCard(condition: HealthCondition, isSelected: Boolean, onClick
                 Box(
                     modifier = Modifier
                         .size(24.dp)
-                        .background(Green, CircleShape),
+                        .background(MaterialTheme.colorScheme.primary, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(

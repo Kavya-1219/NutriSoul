@@ -14,19 +14,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,27 +42,27 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.simats.personalisednutritionapp.composables.InfoCard
-import com.simats.personalisednutritionapp.ui.theme.Green
+import com.simats.personalisednutritionapp.data.UserViewModel
+import com.simats.personalisednutritionapp.ui.theme.PrimaryGreen
 
 @Composable
-fun LifestyleAndActivityScreen(navController: NavController) {
+fun LifestyleAndActivityScreen(navController: NavController, userViewModel: UserViewModel) {
 
     val activityLevels = listOf(
-        ActivityLevel("Sedentary", "Little or no exercise, desk job", "Examples: Office work, studying, minimal movement", R.drawable.la1),
-        ActivityLevel("Lightly Active", "Light exercise 1-3 days/week", "Examples: Walking, light housework, casual cycling", R.drawable.la2),
-        ActivityLevel("Moderately Active", "Moderate exercise 3-5 days/week", "Examples: Regular gym, sports, active job", R.drawable.la3),
-        ActivityLevel("Very Active", "Hard exercise 6-7 days/week", "Examples: Intense training, athletic activities", R.drawable.la4)
+        ActivityLevel("Sedentary", "Little or no exercise, desk job", "Examples: Office work, studying, minimal movement"),
+        ActivityLevel("Lightly Active", "Light exercise 1-3 days/week", "Examples: Walking, light housework, casual cycling"),
+        ActivityLevel("Moderately Active", "Moderate exercise 3-5 days/week", "Examples: Regular gym, sports, active job"),
+        ActivityLevel("Very Active", "Hard exercise 6-7 days/week", "Examples: Intense training, athletic activities")
     )
 
-    var selectedActivityLevel by remember { mutableStateOf<ActivityLevel?>(null) }
+    var selectedLevel by remember { mutableStateOf<ActivityLevel?>(null) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(Green, Color(0xFF81C784))
+                    listOf(PrimaryGreen, Color(0xFF81C784))
                 )
             )
     ) {
@@ -75,8 +75,7 @@ fun LifestyleAndActivityScreen(navController: NavController) {
         ) {
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = { navController.popBackStack() }) {
@@ -88,10 +87,8 @@ fun LifestyleAndActivityScreen(navController: NavController) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
             Icon(
-                painter = painterResource(id = R.drawable.trending_up),
+                imageVector = Icons.Default.MonitorHeart,
                 contentDescription = "Lifestyle & Activity",
                 tint = Color.White,
                 modifier = Modifier.size(40.dp)
@@ -120,7 +117,7 @@ fun LifestyleAndActivityScreen(navController: NavController) {
                     .padding(horizontal = 32.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                repeat(7) { index ->
+                repeat(6) { index ->
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -136,8 +133,7 @@ fun LifestyleAndActivityScreen(navController: NavController) {
         }
 
         Card(
-            modifier = Modifier
-                .fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
@@ -146,37 +142,42 @@ fun LifestyleAndActivityScreen(navController: NavController) {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(24.dp)
-                    .verticalScroll(rememberScrollState())
             ) {
-
                 Text("Select your typical activity level", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
                 Spacer(modifier = Modifier.height(16.dp))
 
-                activityLevels.forEach { activityLevel ->
-                    ActivityLevelCard(
-                        activityLevel = activityLevel,
-                        selected = selectedActivityLevel == activityLevel,
-                        onClick = { selectedActivityLevel = activityLevel }
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()).weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    activityLevels.forEach { level ->
+                        ActivityLevelCard(
+                            level = level,
+                            isSelected = selectedLevel == level,
+                            onClick = { selectedLevel = level }
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                InfoCard("Your activity level helps us calculate your daily calorie burn (TDEE) and adjust your nutrition plan accordingly.")
+                InfoSection()
 
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.height(16.dp))
 
-
-                Button(
-                    onClick = { navController.navigate("goals") },
+                 Button(
+                    onClick = {
+                        selectedLevel?.let {
+                            userViewModel.updateUser(userViewModel.user.value.copy(activityLevel = it.title))
+                        }
+                        navController.navigate(Screen.Goals.route)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Green
-                    )
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
+                    enabled = selectedLevel != null
                 ) {
                     Text("Continue to Goals", color = Color.White)
                 }
@@ -185,36 +186,67 @@ fun LifestyleAndActivityScreen(navController: NavController) {
     }
 }
 
-data class ActivityLevel(val name: String, val description: String, val examples: String, val imageRes: Int)
+data class ActivityLevel(val title: String, val description: String, val examples: String)
 
 @Composable
-fun ActivityLevelCard(activityLevel: ActivityLevel, selected: Boolean, onClick: () -> Unit) {
+fun ActivityLevelCard(level: ActivityLevel, isSelected: Boolean, onClick: () -> Unit) {
+    val borderColor = if (isSelected) PrimaryGreen else Color.LightGray
+    val containerColor = if (isSelected) PrimaryGreen.copy(alpha = 0.05f) else Color.White
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected) Green.copy(alpha = 0.1f) else Color(0xFFF5F5F5)
-        ),
-        border = BorderStroke(1.dp, if (selected) Green else Color.LightGray)
+        border = BorderStroke(1.dp, borderColor),
+        colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Image(
-                painter = painterResource(id = activityLevel.imageRes),
-                contentDescription = activityLevel.name,
+                painter = painterResource(id = getActivityLevelIcon(level.title)),
+                contentDescription = level.title,
                 modifier = Modifier.size(40.dp)
             )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(activityLevel.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text(activityLevel.description, color = Color.Gray, fontSize = 14.sp)
-                Text(activityLevel.examples, color = Color.Gray, fontSize = 12.sp)
+            Spacer(modifier = Modifier.size(16.dp))
+            Column {
+                Text(level.title, fontWeight = FontWeight.Bold)
+                Text(level.description, color = Color.Gray, fontSize = 14.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(level.examples, color = Color.Gray, fontSize = 12.sp)
             }
         }
+    }
+}
+
+@Composable
+private fun InfoSection() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFE3F2FD), RoundedCornerShape(8.dp))
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            painter = painterResource(id = R.drawable.ic_bulb),
+            contentDescription = "Info",
+            tint = Color(0xFF0D47A1)
+        )
+        Spacer(modifier = Modifier.size(8.dp))
+        Text(
+            text = "Your activity level helps us calculate your daily calorie burn (TDEE) and adjust your nutrition plan accordingly.",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color(0xFF0D47A1)
+        )
+    }
+}
+
+private fun getActivityLevelIcon(level: String): Int {
+    return when (level) {
+        "Sedentary" -> R.drawable.la1
+        "Lightly Active" -> R.drawable.la2
+        "Moderately Active" -> R.drawable.la3
+        "Very Active" -> R.drawable.la4
+        else -> R.drawable.la1
     }
 }

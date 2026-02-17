@@ -31,6 +31,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -47,26 +48,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.simats.personalisednutritionapp.ui.theme.Green
+import com.simats.personalisednutritionapp.data.UserViewModel
 
 @Composable
-fun GoalsScreen(navController: NavController) {
+fun GoalsScreen(navController: NavController, userViewModel: UserViewModel) {
 
     val goals = listOf(
         Goal("Lose weight", Icons.Default.TrendingDown, Color(0xFF3F51B5)),
-        Goal("Maintain weight", Icons.Outlined.FavoriteBorder, Green),
+        Goal("Maintain weight", Icons.Outlined.FavoriteBorder, MaterialTheme.colorScheme.primary),
         Goal("Gain weight", Icons.Default.TrendingUp, Color(0xFFFFA000)),
         Goal("Gain muscle", Icons.Default.FitnessCenter, Color(0xFF9C27B0))
     )
 
-    var selectedGoals by remember { mutableStateOf(setOf<Goal>()) }
+    var selectedGoal by remember { mutableStateOf<Goal?>(null) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(Green, Color(0xFF81C784))
+                    listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
                 )
             )
     ) {
@@ -101,7 +102,7 @@ fun GoalsScreen(navController: NavController) {
             )
 
             Text(
-                "Select one or more goals to personalize your plan",
+                "Select your goal to personalize your plan",
                 color = Color.White.copy(alpha = 0.9f)
             )
 
@@ -114,7 +115,7 @@ fun GoalsScreen(navController: NavController) {
                     .padding(horizontal = 32.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                repeat(7) { index ->
+                repeat(6) { index ->
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -144,18 +145,9 @@ fun GoalsScreen(navController: NavController) {
                 goals.forEach { goal ->
                     GoalCard(
                         goal = goal,
-                        isSelected = selectedGoals.contains(goal),
+                        isSelected = selectedGoal == goal,
                         onClick = { 
-                            val newSelection = if (selectedGoals.contains(goal)) {
-                                selectedGoals - goal
-                            } else {
-                                if (goal.name != "Gain muscle") {
-                                    (selectedGoals.filter { it.name == "Gain muscle" } + goal).toSet()
-                                } else {
-                                    selectedGoals + goal
-                                }
-                            }
-                            selectedGoals = newSelection
+                            selectedGoal = goal
                         }
                     )
                     Spacer(modifier = Modifier.height(16.dp))
@@ -165,10 +157,14 @@ fun GoalsScreen(navController: NavController) {
 
                 Button(
                     onClick = { 
-                        if (selectedGoals.any { it.name == "Lose weight" || it.name == "Gain weight" }) {
-                            navController.navigate("goalWeight")
+                        selectedGoal?.let { 
+                            userViewModel.updateGoal(it.name)
+                        }
+
+                        if (selectedGoal?.name == "Lose weight" || selectedGoal?.name == "Gain weight") {
+                            navController.navigate(Screen.GoalWeight.route)
                         } else {
-                            navController.navigate("healthConditions")
+                            navController.navigate(Screen.HealthConditions.route)
                         }
                     },
                     modifier = Modifier
@@ -176,9 +172,9 @@ fun GoalsScreen(navController: NavController) {
                         .height(56.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Green
+                        containerColor = MaterialTheme.colorScheme.primary
                     ),
-                    enabled = selectedGoals.isNotEmpty()
+                    enabled = selectedGoal != null
                 ) {
                     Text("Continue", color = Color.White)
                 }
@@ -191,8 +187,8 @@ data class Goal(val name: String, val icon: ImageVector, val iconColor: Color)
 
 @Composable
 fun GoalCard(goal: Goal, isSelected: Boolean, onClick: () -> Unit) {
-    val borderColor = if (isSelected) Green else Color.LightGray
-    val containerColor = if (isSelected) Green.copy(alpha = 0.1f) else Color(0xFFF5F5F5)
+    val borderColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.LightGray
+    val containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color(0xFFF5F5F5)
 
     Card(
         modifier = Modifier
@@ -234,7 +230,7 @@ fun GoalCard(goal: Goal, isSelected: Boolean, onClick: () -> Unit) {
                 Box(
                     modifier = Modifier
                         .size(24.dp)
-                        .background(Green, CircleShape),
+                        .background(MaterialTheme.colorScheme.primary, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(

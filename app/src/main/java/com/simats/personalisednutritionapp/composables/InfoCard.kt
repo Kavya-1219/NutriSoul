@@ -16,21 +16,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.simats.personalisednutritionapp.ui.theme.Green
+import com.simats.personalisednutritionapp.ui.theme.PrimaryGreen
 
 @Composable
 fun InfoCard(text: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(Green.copy(alpha = 0.1f)),
+        colors = CardDefaults.cardColors(PrimaryGreen.copy(alpha = 0.1f)),
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
             Icon(
                 imageVector = Icons.Outlined.Lightbulb,
                 contentDescription = "Info",
-                tint = Green,
+                tint = PrimaryGreen,
                 modifier = Modifier.padding(end = 8.dp)
             )
             Text(

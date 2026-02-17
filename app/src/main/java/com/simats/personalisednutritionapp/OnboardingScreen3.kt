@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.simats.personalisednutritionapp.ui.theme.Green
+import com.simats.personalisednutritionapp.ui.theme.PrimaryGreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,7 +47,7 @@ fun OnboardingScreen3(onGetStartedClicked: () -> Unit, onSkipClicked: () -> Unit
                             .fillMaxWidth()
                             .padding(horizontal = 24.dp)
                             .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Green),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Text(text = "Get Started >")
@@ -121,7 +121,7 @@ fun OnboardingScreen3(onGetStartedClicked: () -> Unit, onSkipClicked: () -> Unit
                     modifier = Modifier
                         .size(width = 24.dp, height = 8.dp)
                         .clip(CircleShape)
-                        .background(Green)
+                        .background(PrimaryGreen)
                 )
             }
         }

@@ -1,18 +1,16 @@
 package com.simats.personalisednutritionapp
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,118 +24,138 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.simats.personalisednutritionapp.ui.theme.Green
+import com.simats.personalisednutritionapp.data.UserViewModel
+import com.simats.personalisednutritionapp.ui.theme.PrimaryGreen
+
+val healthConditionIcons = mapOf(
+    "Diabetes" to "🩺",
+    "PCOS" to "💊",
+    "Thyroid Issues" to "🦋",
+    "High Blood Pressure" to "❤️",
+    "Low Blood Pressure" to "💙",
+    "High Cholesterol" to "🫀",
+    "Digestive Issues" to "🌿",
+    "Anemia" to "🩸",
+    "Food Allergies" to "⚠️"
+)
 
 @Composable
-fun HealthDetailsScreen(navController: NavController, conditionNames: String?) {
-    val conditions = remember { conditionNames?.split(',') ?: emptyList() }
+fun HealthDetailsScreen(navController: NavController, userViewModel: UserViewModel) {
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(Green, Color(0xFF81C784))
-                )
-            )
-    ) {
-        // Top bar
+    val user by userViewModel.user.collectAsState()
+    val selectedHealthConditions = user.healthConditions
+
+    var systolic by remember { mutableStateOf("") }
+    var diastolic by remember { mutableStateOf("") }
+    var selectedThyroid by remember { mutableStateOf<String?>(null) }
+    var selectedDiabetes by remember { mutableStateOf<String?>(null) }
+    var cholesterol by remember { mutableStateOf("") }
+    var selectedFoodAllergies by remember { mutableStateOf<List<String>>(emptyList()) }
+    var otherAllergies by remember { mutableStateOf("") }
+
+    val exceptionalConditions = listOf("None", "PCOS", "Digestive Issues", "Anemia")
+
+    val shouldShowHealthDetails = selectedHealthConditions.any { it !in exceptionalConditions }
+
+    LaunchedEffect(selectedHealthConditions) {
+        if (!shouldShowHealthDetails && selectedHealthConditions.isNotEmpty()) {
+            navController.navigate(Screen.MealsPerDay.route)
+        }
+    }
+
+    if (shouldShowHealthDetails) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 48.dp, start = 16.dp, end = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxSize()
+                .background(PrimaryGreen)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White
-                    )
-                }
-            }
-            Text(
-                "Your Health Details",
-                color = Color.White,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                "Please provide more details.",
-                color = Color.White.copy(alpha = 0.9f)
-            )
-            Spacer(modifier = Modifier.height(32.dp))
-        }
+            Header(navController = navController)
 
-        Card(
-            modifier = Modifier.fillMaxSize(),
-            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
-        ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
+                    .background(Color.White)
                     .padding(24.dp)
             ) {
-                Column(modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
                 ) {
-                    if (conditions.contains("High Blood Pressure") || conditions.contains("Low Blood Pressure")) {
-                        BloodPressureCard()
-                        Spacer(modifier = Modifier.height(16.dp))
+                    if (selectedHealthConditions.contains("High Blood Pressure")) {
+                        BloodPressureSection(systolic, diastolic, "High", onValueChange = { s, d ->
+                            systolic = s
+                            diastolic = d
+                        })
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
-                    if (conditions.contains("Diabetes")) {
-                        DiabetesCard()
-                        Spacer(modifier = Modifier.height(16.dp))
+                    if (selectedHealthConditions.contains("Low Blood Pressure")) {
+                        BloodPressureSection(systolic, diastolic, "Low", onValueChange = { s, d ->
+                            systolic = s
+                            diastolic = d
+                        })
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
-                    if (conditions.contains("Thyroid Issues")) {
-                        ThyroidCard()
-                        Spacer(modifier = Modifier.height(16.dp))
+                    if (selectedHealthConditions.contains("Thyroid Issues")) {
+                        ThyroidSection(selectedThyroid) { selectedThyroid = it }
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
-                    if (conditions.contains("High Cholesterol")) {
-                        CholesterolCard()
-                        Spacer(modifier = Modifier.height(16.dp))
+                    if (selectedHealthConditions.contains("Diabetes")) {
+                        DiabetesSection(selectedDiabetes) { selectedDiabetes = it }
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
-                    if (conditions.contains("Food Allergies")) {
-                        FoodAllergiesCard()
-                        Spacer(modifier = Modifier.height(16.dp))
+                    if (selectedHealthConditions.contains("High Cholesterol")) {
+                        CholesterolSection(cholesterol) { cholesterol = it }
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
+                    if (selectedHealthConditions.contains("Food Allergies")) {
+                        FoodAllergySection(selectedFoodAllergies, otherAllergies) { sfa, oa ->
+                            selectedFoodAllergies = sfa
+                            otherAllergies = oa
+                        }
                     }
                 }
-
                 Button(
                     onClick = {
-                        navController.navigate("mealPerDay")
+                        val updatedUser = user.copy(
+                            systolic = systolic.toIntOrNull(),
+                            diastolic = diastolic.toIntOrNull(),
+                            thyroidCondition = selectedThyroid,
+                            diabetesType = selectedDiabetes,
+                            cholesterolLevel = cholesterol.toIntOrNull(),
+                            foodAllergies = selectedFoodAllergies,
+                            otherAllergies = otherAllergies
+                        )
+                        userViewModel.updateUser(updatedUser)
+                        navController.navigate(Screen.MealsPerDay.route)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Green
-                    )
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
                 ) {
-                    Text("Continue", color = Color.White)
+                    Text("Save & Continue", color = Color.White, fontSize = 18.sp)
                 }
             }
         }
@@ -145,181 +163,245 @@ fun HealthDetailsScreen(navController: NavController, conditionNames: String?) {
 }
 
 @Composable
-fun BloodPressureCard() {
-    var systolic by remember { mutableStateOf("") }
-    var diastolic by remember { mutableStateOf("") }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+private fun Header(navController: NavController) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp, bottom = 24.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("❤️ Blood Pressure Reading", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Systolic (top)")
-                    MyOutlinedTextField(
-                        value = systolic,
-                        onValueChange = { systolic = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Diastolic (bottom)")
-                    MyOutlinedTextField(
-                        value = diastolic,
-                        onValueChange = { diastolic = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
-                }
-            }
+        IconButton(
+            onClick = { navController.popBackStack() },
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .padding(start = 8.dp)
+        ) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+        }
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                painterResource(id = R.drawable.ic_health_details),
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(36.dp)
+            )
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Normal: <120/80 | High: ≥140/90 | Low: <90/60", fontSize = 12.sp, color = Color.Gray)
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun DiabetesCard() {
-    var selectedType by remember { mutableStateOf<String?>(null) }
-    val types = listOf("Type 1", "Type 2", "Prediabetes")
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("🩺 Diabetes Type", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Spacer(modifier = Modifier.height(16.dp))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                types.forEach { type ->
-                    Card(
-                        modifier = Modifier.clickable { selectedType = type },
-                        shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, if (selectedType == type) Green else Color.LightGray),
-                        colors = CardDefaults.cardColors(containerColor = if (selectedType == type) Green.copy(alpha = 0.1f) else Color.White)
-                    ) {
-                        Text(type, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-                    }
-                }
-            }
+            Text("Health Details", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                "Help us personalize your nutrition plan",
+                color = Color.White.copy(alpha = 0.9f),
+                fontSize = 16.sp
+            )
         }
     }
 }
 
 @Composable
-fun ThyroidCard() {
-    var selectedCondition by remember { mutableStateOf<String?>(null) }
-    val conditions = listOf(
+private fun BloodPressureSection(
+    systolic: String,
+    diastolic: String,
+    type: String,
+    onValueChange: (String, String) -> Unit
+) {
+    val icon = if (type == "High") healthConditionIcons["High Blood Pressure"] else healthConditionIcons["Low Blood Pressure"]
+    val rangeText = if (type == "High") "Normal: <120/80 | High: ≥140/90" else "Normal: <120/80 | Low: <90/60"
+
+    HealthDetailCard(icon = icon, title = "Blood Pressure Reading") {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            OutlinedTextField(
+                value = systolic,
+                onValueChange = { onValueChange(it, diastolic) },
+                label = { Text("Systolic (top)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.weight(1f),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = PrimaryGreen,
+                    focusedLabelColor = PrimaryGreen,
+                    cursorColor = PrimaryGreen,
+                    focusedTextColor = PrimaryGreen
+                )
+            )
+            OutlinedTextField(
+                value = diastolic,
+                onValueChange = { onValueChange(systolic, it) },
+                label = { Text("Diastolic (bottom)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.weight(1f),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = PrimaryGreen,
+                    focusedLabelColor = PrimaryGreen,
+                    cursorColor = PrimaryGreen,
+                    focusedTextColor = PrimaryGreen
+                )
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(rangeText, fontSize = 12.sp, color = Color.Gray)
+    }
+}
+
+@Composable
+private fun ThyroidSection(selectedThyroid: String?, onSelect: (String) -> Unit) {
+    val thyroidOptions = listOf(
         "Hypothyroidism (Underactive)",
         "Hyperthyroidism (Overactive)",
-        "Hashimoto’s",
+        "Hashimoto's",
         "Not sure"
     )
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("🦋 Thyroid Condition", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Spacer(modifier = Modifier.height(16.dp))
-            conditions.forEach { condition ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { selectedCondition = condition },
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, if (selectedCondition == condition) Green else Color.LightGray),
-                    colors = CardDefaults.cardColors(containerColor = if (selectedCondition == condition) Green.copy(alpha = 0.1f) else Color.White)
-                ) {
-                    Text(condition, modifier = Modifier.padding(16.dp))
+    HealthDetailCard(icon = healthConditionIcons["Thyroid Issues"], title = "Thyroid Condition") {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            thyroidOptions.forEach { option ->
+                SelectableButton(text = option, selected = selectedThyroid == option, modifier = Modifier.fillMaxWidth()) {
+                    onSelect(option)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DiabetesSection(selectedDiabetes: String?, onSelect: (String) -> Unit) {
+    val diabetesOptions = listOf("Type 1", "Type 2", "Prediabetes")
+
+    HealthDetailCard(icon = healthConditionIcons["Diabetes"], title = "Diabetes Type") {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SelectableButton(text = diabetesOptions[0], selected = selectedDiabetes == diabetesOptions[0], modifier = Modifier.weight(1f)) {
+                onSelect(diabetesOptions[0])
+            }
+            SelectableButton(text = diabetesOptions[1], selected = selectedDiabetes == diabetesOptions[1], modifier = Modifier.weight(1f)) {
+                onSelect(diabetesOptions[1])
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        SelectableButton(text = diabetesOptions[2], selected = selectedDiabetes == diabetesOptions[2], modifier = Modifier.fillMaxWidth()) {
+            onSelect(diabetesOptions[2])
+        }
+    }
+}
+
+@Composable
+private fun CholesterolSection(cholesterol: String, onValueChange: (String) -> Unit) {
+    HealthDetailCard(icon = healthConditionIcons["High Cholesterol"], title = "Cholesterol Level (mg/dL)") {
+        OutlinedTextField(
+            value = cholesterol,
+            onValueChange = onValueChange,
+            label = { Text("e.g., 220") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = PrimaryGreen,
+                focusedLabelColor = PrimaryGreen,
+                cursorColor = PrimaryGreen,
+                focusedTextColor = PrimaryGreen
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text("Normal: <200 | High: ≥240 mg/dL", fontSize = 12.sp, color = Color.Gray)
+    }
+}
+
+@Composable
+private fun FoodAllergySection(
+    selectedFoodAllergies: List<String>,
+    otherAllergies: String,
+    onValueChange: (List<String>, String) -> Unit
+) {
+    val allergyOptions = listOf(
+        "Peanuts", "Shellfish", "Sesame",
+        "Apollo Fish", "Milk/Dairy", "Eggs",
+        "Soy", "Wheat/Gluten", "Fish"
+    )
+
+    HealthDetailCard(icon = healthConditionIcons["Food Allergies"], title = "Select Your Food Allergies") {
+        Column {
+            allergyOptions.chunked(3).forEach { rowOptions ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val remainingSpace = 3 - rowOptions.size
+                    rowOptions.forEach { option ->
+                        SelectableButton(
+                            text = option,
+                            selected = selectedFoodAllergies.contains(option),
+                            onClick = {
+                                val newSelection = if (selectedFoodAllergies.contains(option)) {
+                                    selectedFoodAllergies - option
+                                } else {
+                                    selectedFoodAllergies + option
+                                }
+                                onValueChange(newSelection, otherAllergies)
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    if (remainingSpace > 0) {
+                        Spacer(modifier = Modifier.weight(remainingSpace.toFloat()))
+                    }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
-    }
-}
 
-@Composable
-fun CholesterolCard() {
-    var cholesterolLevel by remember { mutableStateOf("") }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("🫀 Cholesterol Level (mg/dL)", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Spacer(modifier = Modifier.height(16.dp))
-            MyOutlinedTextField(
-                value = cholesterolLevel,
-                onValueChange = { cholesterolLevel = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("e.g., 220") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+        OutlinedTextField(
+            value = otherAllergies,
+            onValueChange = { onValueChange(selectedFoodAllergies, it) },
+            label = { Text("Other allergies (optional)") },
+            placeholder = { Text("e.g., Strawberries, Mustard") },
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = PrimaryGreen,
+                focusedLabelColor = PrimaryGreen,
+                cursorColor = PrimaryGreen,
+                focusedTextColor = PrimaryGreen
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Normal: <200 | High: ≥240 mg/dL", fontSize = 12.sp, color = Color.Gray)
-        }
+        )
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun FoodAllergiesCard() {
-    val allergies = listOf("Peanuts", "Tree nuts", "Milk/Dairy", "Eggs", "Soy", "Wheat/Gluten", "Shellfish", "Fish", "Sesame")
-    var selectedAllergies by remember { mutableStateOf(setOf<String>()) }
-    var otherAllergies by remember { mutableStateOf("") }
 
+@Composable
+private fun HealthDetailCard(icon: String?, title: String, content: @Composable () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("⚠️ Select Your Food Allergies", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Spacer(modifier = Modifier.height(16.dp))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                allergies.forEach { allergy ->
-                    val isSelected = selectedAllergies.contains(allergy)
-                    Card(
-                        modifier = Modifier.clickable {
-                            selectedAllergies = if (isSelected) {
-                                selectedAllergies - allergy
-                            } else {
-                                selectedAllergies + allergy
-                            }
-                        },
-                        shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, if (isSelected) Green else Color.LightGray),
-                        colors = CardDefaults.cardColors(containerColor = if (isSelected) Green.copy(alpha = 0.1f) else Color.White)
-                    ) {
-                        Text(allergy, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-                    }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (icon != null) {
+                    Text(text = icon, fontSize = 24.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Other allergies (optional)")
-            MyOutlinedTextField(
-                value = otherAllergies,
-                onValueChange = { otherAllergies = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("e.g., Strawberries, Mustard") }
-            )
+            content()
         }
+    }
+}
+
+@Composable
+fun SelectableButton(
+    text: String, 
+    selected: Boolean, 
+    modifier: Modifier = Modifier, 
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        modifier = modifier,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (selected) PrimaryGreen else Color(0xFFF0F0F0),
+            contentColor = if (selected) Color.White else Color.Black
+        )
+    ) {
+        Text(text)
     }
 }

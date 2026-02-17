@@ -1,53 +1,21 @@
 package com.simats.personalisednutritionapp
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.* 
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.RestaurantMenu
-import androidx.compose.material.icons.filled.SelfImprovement
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material.icons.outlined.DirectionsRun
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.LocalFireDepartment
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
@@ -57,105 +25,104 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.simats.personalisednutritionapp.ui.theme.Green
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
+import com.simats.personalisednutritionapp.data.UserViewModel
+import com.simats.personalisednutritionapp.ui.theme.PrimaryGreen
+import java.util.Calendar
 
 @Composable
-fun HomeScreen() {
-    var selectedItem by remember { mutableIntStateOf(0) }
-    val items = listOf(
-        NavigationItem("Home", Icons.Default.Home),
-        NavigationItem("Stress & Sleep", Icons.Default.SelfImprovement),
-        NavigationItem("Recipes", Icons.Default.RestaurantMenu),
-        NavigationItem("Insights", Icons.Default.BarChart),
-        NavigationItem("Settings", Icons.Default.Settings)
-    )
+fun HomeScreen(navController: NavController, userViewModel: UserViewModel) {
+    val user by userViewModel.user.collectAsStateWithLifecycle()
 
     Scaffold(
-        bottomBar = {
-            NavigationBar(
-                containerColor = Color.White,
-            ) {
-                items.forEachIndexed { index, item ->
-                    NavigationBarItem(
-                        icon = { Icon(item.icon, contentDescription = item.title) },
-                        label = { Text(item.title, fontSize = 10.sp) },
-                        selected = selectedItem == index,
-                        onClick = { selectedItem = index },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Color.White,
-                            selectedTextColor = Green,
-                            unselectedIconColor = Color.Gray,
-                            unselectedTextColor = Color.Gray,
-                            indicatorColor = Green
-                        )
-                    )
-                }
-            }
-        }
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = { BottomNavigationBar(onItemSelected = {}) }
     ) { innerPadding ->
-        Column(
+
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(Color(0xFFF0F4F0))
-                .verticalScroll(rememberScrollState())
         ) {
-            when (selectedItem) {
-                0 -> HomeContent()
-                1 -> Text("Stress & Sleep Screen", modifier = Modifier.padding(16.dp))
-                2 -> Text("Recipes Screen", modifier = Modifier.padding(16.dp))
-                3 -> Text("Insights Screen", modifier = Modifier.padding(16.dp))
-                4 -> Text("Settings Screen", modifier = Modifier.padding(16.dp))
-            }
+            HomeContent(navController, userViewModel)
         }
     }
 }
 
 @Composable
-fun HomeContent() {
-    Column {
-        Header()
+fun HomeContent(navController: NavController, userViewModel: UserViewModel) {
+    val user by userViewModel.user.collectAsStateWithLifecycle()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
+        Header(user?.name ?: "User")
+        Spacer(modifier = Modifier.height(24.dp))
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            DailyCalorieGoalCard()
-            WeightProgressCard()
-            TodayActivityCard()
-            QuickActionsCard()
+            DailyCalorieGoalCard(user?.targetCalories ?: 0.0)
+            WeightProgressCard(user?.currentWeight ?: 0.0, user?.targetWeight ?: 0.0, user?.goal ?: "")
+            TodayActivityCard(navController)
+            QuickActionsCard(navController)
             DailyTipCard()
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
 @Composable
-fun Header() {
+fun Header(name: String) {
+    val timeOfDay = when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
+        in 0..11 -> "Good Morning"
+        in 12..16 -> "Good Afternoon"
+        else -> "Good Evening"
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp)
+            .height(200.dp)
             .background(
-                Green,
-                shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        PrimaryGreen,
+                        Color(0xFF66BB6A)
+                    )
+                ),
+                shape = RoundedCornerShape(
+                    bottomStart = 40.dp,
+                    bottomEnd = 40.dp
+                )
             )
             .padding(24.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                Text("Good Morning", color = Color.White.copy(alpha = 0.8f))
-                Text("k", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    timeOfDay,
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 16.sp
+                )
+                Text(
+                    name,
+                    color = Color.White,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(52.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.3f)),
+                    .background(Color.White.copy(alpha = 0.25f)),
                 contentAlignment = Alignment.Center
             ) {
                 Text("👋", fontSize = 24.sp)
@@ -164,132 +131,185 @@ fun Header() {
     }
 }
 
-
 @Composable
-fun DailyCalorieGoalCard() {
+fun DailyCalorieGoalCard(targetCalories: Double) {
+    val consumed = 0 // This will be updated later from the database
+    val goal = targetCalories.toInt()
+    val remaining = goal - consumed
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(8.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(2.dp)
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(Modifier.padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Daily Calorie Goal", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                Spacer(modifier = Modifier.weight(1f))
-                Icon(Icons.Outlined.LocalFireDepartment, contentDescription = "Fire", tint = Color(0xFFFFA500))
+                Text(
+                    "Daily Calorie Goal",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Spacer(Modifier.weight(1f))
+                Icon(
+                    Icons.Outlined.LocalFireDepartment,
+                    contentDescription = null,
+                    tint = PrimaryGreen 
+                )
             }
-            Spacer(modifier = Modifier.height(16.dp))
+
+            Spacer(Modifier.height(20.dp))
+
             Text(
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
                 text = buildAnnotatedString {
-                    withStyle(style = SpanStyle(fontSize = 48.sp, fontWeight = FontWeight.Bold)) {
-                        append("0")
+                    withStyle(SpanStyle(fontSize = 48.sp, fontWeight = FontWeight.Bold)) {
+                        append(consumed.toString())
                     }
-                    withStyle(style = SpanStyle(fontSize = 24.sp, color = Color.Gray)) {
-                        append(" / 1633")
+                    withStyle(SpanStyle(fontSize = 22.sp, color = Color.Gray)) {
+                        append(" / $goal")
                     }
                 }
             )
-            Spacer(modifier = Modifier.height(16.dp))
+
+            Spacer(Modifier.height(16.dp))
+
             LinearProgressIndicator(
-                progress = { 0.0f },
+                progress = (consumed.toFloat() / goal).coerceIn(0f, 1f),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                color = Green,
-                trackColor = Color.LightGray.copy(alpha = 0.4f)
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(10.dp)),
+                color = PrimaryGreen,
+                trackColor = Color(0xFFE0E0E0)
             )
-            Spacer(modifier = Modifier.height(8.dp))
+
+            Spacer(Modifier.height(12.dp))
+
+            Text(
+                "Remaining: $remaining kcal",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 13.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun WeightProgressCard(currentWeight: Double, targetWeight: Double, goal: String) {
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.WaterDrop, contentDescription = "Water drop", tint = Color(0xFF2196F3))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Remaining: 1633 kcal", color = Color.Gray, fontSize = 12.sp)
+                Text(
+                    "Weight Progress",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Spacer(Modifier.weight(1f))
+                Icon(Icons.Default.BarChart, contentDescription = null, tint = PrimaryGreen)
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            if (goal == "Maintain Weight" || goal == "Gain Muscle") {
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    WeightBox("Current Weight", "$currentWeight kg", MaterialTheme.colorScheme.onBackground)
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    WeightBox("Current", "$currentWeight kg", MaterialTheme.colorScheme.onBackground)
+                    WeightBox("Target", "$targetWeight kg", PrimaryGreen)
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                val weightToGoal = if (goal == "Weight Loss") {
+                    (currentWeight - targetWeight).toFloat()
+                } else {
+                    (targetWeight - currentWeight).toFloat()
+                }
+
+                Text(
+                    text = "${String.format("%.1f", weightToGoal)} kg to go",
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
     }
 }
 
 @Composable
-fun WeightProgressCard() {
+fun RowScope.WeightBox(label: String, value: String, valueColor: Color) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.weight(1f),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(2.dp)
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row {
-                Text("Weight Progress", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                Spacer(Modifier.weight(1f))
-                Icon(Icons.Default.BarChart, contentDescription = "Graph", tint = Color(0xFF3F51B5))
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
-                Card(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(0.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("Current", color = Color.Gray)
-                        Text("65 kg", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-                Card(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(0.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("Target", color = Color.Gray)
-                        Text("60 kg", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Green)
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(label)
             Text(
-                "5.0 kg to go",
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-                color = Color.Gray,
-                fontSize = 12.sp
+                value,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = valueColor
             )
         }
     }
 }
 
 @Composable
-fun TodayActivityCard() {
+fun TodayActivityCard(navController: NavController) {
+
     Column {
-        Text("Today's Activity", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            "Today's Activity",
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 18.sp,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(Modifier.height(12.dp))
+
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+
             ActivityItem(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Default.WaterDrop,
                 label = "ml water",
-                value = "0",
-                color = Color(0xFFE3F2FD),
-                iconColor = Color(0xFF2196F3)
+                value = "0", // Will be replaced with data from ViewModel
+                background = Color(0xFFE3F2FD),
+                iconColor = Color(0xFF42A5F5),
+                onClick = { navController.navigate(Screen.WaterTracking.route) }
             )
+
             ActivityItem(
                 modifier = Modifier.weight(1f),
-                icon = Icons.Outlined.DirectionsRun,
+                icon = Icons.Default.DirectionsWalk,
                 label = "steps",
-                value = "0",
-                color = Green.copy(alpha = 0.1f),
-                iconColor = Green
+                value = "0", // Will be replaced with data from ViewModel
+                background = Color(0xFFE8F5E9),
+                iconColor = Color(0xFF66BB6A),
+                onClick = { navController.navigate(Screen.StepsTracking.route) }
             )
         }
     }
@@ -297,147 +317,127 @@ fun TodayActivityCard() {
 
 @Composable
 fun RowScope.ActivityItem(
-    modifier: Modifier = Modifier,
+    modifier: Modifier,
     icon: ImageVector,
     label: String,
     value: String,
-    color: Color,
-    iconColor: Color
+    background: Color,
+    iconColor: Color,
+    onClick: () -> Unit
 ) {
+
     Card(
-        modifier = modifier.weight(1f),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = color)
+        modifier = modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = background),
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier.padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(icon, contentDescription = label, tint = iconColor, modifier = Modifier.size(32.dp))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(value, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Text(label, color = Color.Gray, fontSize = 12.sp)
+            Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(32.dp))
+            Spacer(Modifier.height(8.dp))
+            Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
         }
     }
 }
 
 @Composable
-fun QuickActionsCard() {
+fun QuickActionsCard(navController: NavController) {
+
     Column {
-        Text("Quick Actions", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-        Spacer(modifier = Modifier.height(16.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                QuickActionItem(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.Add,
-                    label = "Log Food",
-                    subLabel = "Track your meals",
-                    iconColor = Green,
-                    iconBackgroundColor = Green.copy(alpha = 0.1f)
-                )
-                QuickActionItem(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.CameraAlt,
-                    label = "Meal Plan",
-                    subLabel = "View your plan",
-                    iconColor = Color(0xFF3F51B5),
-                    iconBackgroundColor = Color(0xFFE3F2FD)
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                QuickActionItem(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.Psychology,
-                    label = "AI Tips",
-                    subLabel = "Get recommendations",
-                    iconColor = Color(0xFF9C27B0),
-                    iconBackgroundColor = Color(0xFFF3E5F5)
-                )
-                QuickActionItem(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.History,
-                    label = "History",
-                    subLabel = "View past logs",
-                    iconColor = Color(0xFFFFA500),
-                    iconBackgroundColor = Color(0xFFFFECB3)
-                )
-            }
+
+        Text(
+            "Quick Actions",
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 18.sp,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            QuickActionItem("Log Food", Icons.Default.Add, Color(0xFF66BB6A)) { navController.navigate(Screen.LogFood.route) }
+            QuickActionItem("Meal Plan", Icons.Default.CameraAlt, Color(0xFF42A5F5)) {}
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            QuickActionItem("AI Tips", Icons.Default.Psychology, Color(0xFFAB47BC)) { navController.navigate(Screen.AiTips.route) }
+            QuickActionItem("History", Icons.Default.History, Color(0xFFFF7043)) {}
         }
     }
 }
 
 @Composable
 fun RowScope.QuickActionItem(
-    modifier: Modifier = Modifier,
+    title: String,
     icon: ImageVector,
-    label: String,
-    subLabel: String,
-    iconColor: Color,
-    iconBackgroundColor: Color
+    color: Color,
+    onClick: () -> Unit
 ) {
+
     Card(
-        modifier = modifier.weight(1f),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(2.dp)
+        modifier = Modifier
+            .weight(1f)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(iconBackgroundColor),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, contentDescription = label, tint = iconColor, modifier = Modifier.size(24.dp))
-            }
-            Column {
-                Text(label, fontWeight = FontWeight.SemiBold)
-                Text(subLabel, color = Color.Gray, fontSize = 12.sp)
-            }
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(32.dp))
+            Spacer(Modifier.height(12.dp))
+            Text(title, fontWeight = FontWeight.SemiBold)
         }
     }
 }
 
 @Composable
 fun DailyTipCard() {
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5)),
+        elevation = CardDefaults.cardElevation(6.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+
+        Row(
+            modifier = Modifier.padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF9C27B0)),
+                    .background(Color(0xFFAB47BC).copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Edit, contentDescription = "Tip", tint = Color.White)
+                Icon(Icons.Default.TrackChanges, contentDescription = null, tint = Color(0xFFAB47BC))
             }
-            Spacer(modifier = Modifier.width(16.dp))
+
+            Spacer(Modifier.width(16.dp))
+
             Column {
-                Text("Daily Tip", fontWeight = FontWeight.SemiBold, color = Color(0xFF9C27B0))
                 Text(
-                    "You're doing great! Make sure to eat enough to meet your daily goals.",
+                    "Daily Tip",
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFFAB47BC)
+                )
+                Text(
+                    "You\'re doing great! Make sure to eat enough to meet your daily goals.",
                     fontSize = 14.sp,
-                    color = Color.DarkGray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
     }
 }
-
-
-data class NavigationItem(val title: String, val icon: ImageVector)

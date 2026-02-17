@@ -5,9 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MailOutline
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -21,15 +19,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.simats.personalisednutritionapp.ui.theme.Green
+import androidx.navigation.NavController
+import com.simats.personalisednutritionapp.ui.theme.PrimaryGreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegisterScreen(
-    onLoginClicked: () -> Unit,
-    onNavigateBack: () -> Unit,
-    onAccountCreated: () -> Unit
-) {
+fun RegisterScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -52,10 +47,10 @@ fun RegisterScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(brush = Brush.verticalGradient(colors = listOf(Green, Color(0xFF81C784))))
+            .background(brush = Brush.verticalGradient(colors = listOf(PrimaryGreen, Color(0xFF81C784))))
     ) {
-        IconButton(onClick = onNavigateBack, modifier = Modifier.padding(8.dp)) {
-            Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+        IconButton(onClick = { navController.navigateUp() }, modifier = Modifier.padding(8.dp)) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
         }
 
         Column(
@@ -90,7 +85,6 @@ fun RegisterScreen(
                     .fillMaxSize()
                     .padding(24.dp)
             ) {
-
                 // Email field
                 Text(text = "Email")
                 OutlinedTextField(
@@ -100,14 +94,10 @@ fun RegisterScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF16A34A),
-                        unfocusedBorderColor = Color(0xFFD1D5DB),
-                        focusedLabelColor = Color(0xFF16A34A),
-                        cursorColor = Color(0xFF16A34A),
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black,
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White
+                        focusedBorderColor = PrimaryGreen,
+                        focusedLabelColor = PrimaryGreen,
+                        cursorColor = PrimaryGreen,
+                        focusedTextColor = PrimaryGreen
                     ),
                     shape = RoundedCornerShape(12.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -132,14 +122,10 @@ fun RegisterScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF16A34A),
-                        unfocusedBorderColor = Color(0xFFD1D5DB),
-                        focusedLabelColor = Color(0xFF16A34A),
-                        cursorColor = Color(0xFF16A34A),
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black,
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White
+                        focusedBorderColor = PrimaryGreen,
+                        focusedLabelColor = PrimaryGreen,
+                        cursorColor = PrimaryGreen,
+                        focusedTextColor = PrimaryGreen
                     ),
                     shape = RoundedCornerShape(12.dp),
                     visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -169,14 +155,10 @@ fun RegisterScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF16A34A),
-                        unfocusedBorderColor = Color(0xFFD1D5DB),
-                        focusedLabelColor = Color(0xFF16A34A),
-                        cursorColor = Color(0xFF16A34A),
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black,
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White
+                        focusedBorderColor = PrimaryGreen,
+                        focusedLabelColor = PrimaryGreen,
+                        cursorColor = PrimaryGreen,
+                        focusedTextColor = PrimaryGreen
                     ),
                     shape = RoundedCornerShape(12.dp),
                     visualTransformation = if (isConfirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -217,13 +199,13 @@ fun RegisterScreen(
                     onClick = {
                         UserCredentials.email = email
                         UserCredentials.password = password
-                        onAccountCreated()
+                        navController.navigate(Screen.PersonalDetails.route)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
                     enabled = isButtonEnabled,
-                    colors = ButtonDefaults.buttonColors(containerColor = Green)
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
                 ) {
                     Text("Create Account")
                 }
@@ -234,8 +216,8 @@ fun RegisterScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("Already have an account?")
-                    TextButton(onClick = onLoginClicked) {
-                        Text("Login", color = Green)
+                    TextButton(onClick = { navController.navigate(Screen.Login.route) }) {
+                        Text("Login", color = PrimaryGreen)
                     }
                 }
             }

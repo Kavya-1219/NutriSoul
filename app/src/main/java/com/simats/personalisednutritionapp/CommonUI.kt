@@ -2,6 +2,7 @@ package com.simats.personalisednutritionapp
 
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.TextSelectionColors
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -9,7 +10,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.input.VisualTransformation
-import com.simats.personalisednutritionapp.ui.theme.Green
 
 @Composable
 fun MyOutlinedTextField(
@@ -42,12 +42,12 @@ fun MyOutlinedTextField(
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = Color.Black,
             unfocusedTextColor = Color.Black,
-            focusedBorderColor = Green,
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
             unfocusedBorderColor = Color.Gray,
-            cursorColor = Green,
+            cursorColor = MaterialTheme.colorScheme.primary,
             selectionColors = TextSelectionColors(
-                handleColor = Green,
-                backgroundColor = Green.copy(alpha = 0.4f)
+                handleColor = MaterialTheme.colorScheme.primary,
+                backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
             )
         )
     )

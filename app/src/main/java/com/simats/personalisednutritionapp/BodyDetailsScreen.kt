@@ -4,7 +4,17 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -13,8 +23,23 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Balance
 import androidx.compose.material.icons.outlined.Lightbulb
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,11 +51,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import com.simats.personalisednutritionapp.ui.theme.Green
+import com.simats.personalisednutritionapp.data.UserViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BodyDetailsScreen(navController: NavHostController) {
+fun BodyDetailsScreen(navController: NavHostController, userViewModel: UserViewModel) {
 
     var height by remember { mutableStateOf("161") }
     var weight by remember { mutableStateOf("65") }
@@ -43,12 +68,12 @@ fun BodyDetailsScreen(navController: NavHostController) {
     val bmiColor = getBmiColor(bmiCategory)
 
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(Green, Color(0xFF81C784))
+                    listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
                 )
             )
     ) {
@@ -56,14 +81,13 @@ fun BodyDetailsScreen(navController: NavHostController) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp),
+                .padding(top = 48.dp, start = 16.dp, end = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp),
+                    .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = { navController.popBackStack() }) {
@@ -106,7 +130,7 @@ fun BodyDetailsScreen(navController: NavHostController) {
                     .padding(horizontal = 32.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                repeat(7) { index ->
+                repeat(6) { index ->
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -118,13 +142,12 @@ fun BodyDetailsScreen(navController: NavHostController) {
                     )
                 }
             }
+            Spacer(modifier = Modifier.height(32.dp))
         }
 
         Card(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .fillMaxHeight(0.78f),
+                .fillMaxSize(),
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
@@ -196,12 +219,19 @@ fun BodyDetailsScreen(navController: NavHostController) {
                 Spacer(modifier = Modifier.weight(1f))
 
                 Button(
-                    onClick = { navController.navigate("foodPreferences") },
+                    onClick = {
+                        val user = userViewModel.user.value.copy(
+                            height = height.toDouble(),
+                            currentWeight = weight.toDouble()
+                        )
+                        userViewModel.updateUser(user)
+                        navController.navigate(Screen.FoodPreferences.route)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Green)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text("Continue", color = Color.White)
                 }
@@ -223,7 +253,7 @@ fun UnitSelector(units: List<String>, selectedUnit: String, onUnitSelected: (Str
             Text(
                 text = unit,
                 modifier = Modifier
-                    .background(if (unit == selectedUnit) Green.copy(alpha = 0.8f) else Color.Transparent)
+                    .background(if (unit == selectedUnit) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f) else Color.Transparent)
                     .clickable { onUnitSelected(unit) }
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 color = if (unit == selectedUnit) Color.White else Color.Black,
@@ -258,7 +288,7 @@ fun BmiCard(bmi: Double, category: String, progress: Float, bmiColor: Color) {
                 Spacer(modifier = Modifier.height(12.dp))
 
                 LinearProgressIndicator(
-                    progress = { progress },
+                    progress = progress,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(10.dp)
@@ -282,14 +312,14 @@ fun BmrInfoCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(Green.copy(alpha = 0.1f)),
+        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
             Icon(
                 imageVector = Icons.Outlined.Lightbulb,
                 contentDescription = "Info",
-                tint = Green,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(end = 8.dp)
             )
             Text(
@@ -334,12 +364,38 @@ fun getBmiCategory(bmi: Double): String {
     }
 }
 
+@Composable
 fun getBmiColor(category: String): Color {
     return when (category) {
         "Underweight" -> Color.Blue
-        "Normal" -> Color(0xFF4CAF50) // A shade of green
+        "Normal" -> MaterialTheme.colorScheme.primary
         "Overweight" -> Color(0xFFFFA500) // Orange
         "Obese" -> Color.Red
         else -> Color.Gray
     }
+}
+
+@Composable
+fun MyOutlinedTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: @Composable (() -> Unit)? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    shape: RoundedCornerShape = RoundedCornerShape(12.dp)
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        placeholder = placeholder,
+        keyboardOptions = keyboardOptions,
+        shape = shape,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            focusedLabelColor = MaterialTheme.colorScheme.primary,
+            cursorColor = MaterialTheme.colorScheme.primary,
+            focusedTextColor = MaterialTheme.colorScheme.primary
+        )
+    )
 }

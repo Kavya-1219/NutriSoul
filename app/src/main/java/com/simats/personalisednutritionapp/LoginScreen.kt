@@ -15,15 +15,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
-import com.simats.personalisednutritionapp.ui.theme.Green
+import androidx.navigation.NavController
+import com.simats.personalisednutritionapp.ui.theme.PrimaryGreen
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(
-    onCreateNewAccountClicked: () -> Unit,
-    onLoginClicked: () -> Unit
-) {
+fun LoginScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
@@ -34,7 +32,7 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Green)
+            .background(PrimaryGreen)
     ) {
 
         Column(
@@ -67,19 +65,25 @@ fun LoginScreen(
             ) {
 
                 Text("Email")
-                MyOutlinedTextField(
+                OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = { Icon(Icons.Default.MailOutline, null) },
                     placeholder = { Text("yourname@gmail.com") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PrimaryGreen,
+                        focusedLabelColor = PrimaryGreen,
+                        cursorColor = PrimaryGreen,
+                        focusedTextColor = PrimaryGreen
+                    )
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text("Password")
-                MyOutlinedTextField(
+                OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
                     modifier = Modifier.fillMaxWidth(),
@@ -97,6 +101,12 @@ fun LoginScreen(
                             )
                         }
                     },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PrimaryGreen,
+                        focusedLabelColor = PrimaryGreen,
+                        cursorColor = PrimaryGreen,
+                        focusedTextColor = PrimaryGreen
+                    )
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -104,7 +114,7 @@ fun LoginScreen(
                 Button(
                     onClick = {
                         if (email == UserCredentials.email && password == UserCredentials.password) {
-                            onLoginClicked()
+                            navController.navigate(Screen.Home.route)
                         } else {
                             scope.launch {
                                 snackbarHostState.showSnackbar("Invalid credentials. Please register.")
@@ -114,7 +124,7 @@ fun LoginScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Green)
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
                 ) {
                     Text("Login")
                 }
@@ -124,8 +134,8 @@ fun LoginScreen(
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Text("Don't have an account?")
-                    TextButton(onClick = onCreateNewAccountClicked) {
-                        Text("Create Account", color = Green)
+                    TextButton(onClick = { navController.navigate(Screen.Register.route) }) {
+                        Text("Create Account", color = PrimaryGreen)
                     }
                 }
             }
