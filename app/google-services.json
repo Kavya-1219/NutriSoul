@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "640473072890",
-    "project_id": "nutrisoul-4afb6",
-    "storage_bucket": "nutrisoul-4afb6.firebasestorage.app"
+    "project_number": "263851596978",
+    "project_id": "nutrisoul-c9860",
+    "storage_bucket": "nutrisoul-c9860.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:640473072890:android:e078466dd4af03e0d17543",
+        "mobilesdk_app_id": "1:263851596978:android:04c27b4e576d63b827bdab",
         "android_client_info": {
           "package_name": "com.simats.nutrisoul"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDNb-CWTG-wI3UFHe3rV4E1ji2js_8zHtk"
+          "current_key": "AIzaSyB-k2EMY-aZkWxquEgsnrVCzn9pTfY-faQ"
         }
       ],
       "services": {
