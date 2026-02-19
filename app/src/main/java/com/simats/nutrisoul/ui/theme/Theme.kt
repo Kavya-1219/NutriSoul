@@ -10,6 +10,7 @@ private val DarkColorScheme = darkColorScheme(
     primary = PrimaryGreen,
     background = LightGreenBackground,
     onBackground = TitleColor,
+    onSurface = TitleColor,
     onSurfaceVariant = SubTextColor
 )
 
@@ -17,6 +18,7 @@ private val LightColorScheme = lightColorScheme(
     primary = PrimaryGreen,
     background = LightGreenBackground,
     onBackground = TitleColor,
+    onSurface = TitleColor,
     onSurfaceVariant = SubTextColor
 )
 

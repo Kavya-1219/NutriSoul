@@ -20,16 +20,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simats.nutrisoul.data.UserViewModel
-
-private val DarkGreen = Color(0xFF0F3D2E)
-private val PrimaryGreen = Color(0xFF1B5E20)
+import com.simats.nutrisoul.ui.theme.PrimaryGreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,11 +45,7 @@ fun PersonalDetailsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(DarkGreen, PrimaryGreen)
-                )
-            )
+            .background(PrimaryGreen)
     ) {
 
         // Top section
