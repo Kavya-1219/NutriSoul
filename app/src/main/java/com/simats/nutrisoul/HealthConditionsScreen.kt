@@ -190,24 +190,26 @@ fun HealthConditionsScreen(navController: NavController, userViewModel: UserView
 
                 Button(
                     onClick = {
-                        val user = userViewModel.user.value.copy(
-                            healthConditions = selectedConditions.map { it.name }.toList()
-                        )
-                        userViewModel.updateUser(user)
+                        userViewModel.user.value?.let { currentUser ->
+                            val updatedUser = currentUser.copy(
+                                healthConditions = selectedConditions.map { it.name }.toList()
+                            )
+                            userViewModel.updateUser(updatedUser)
 
-                        val requiresDetails = selectedConditions.any { 
-                            it.name == "High Blood Pressure" || 
-                            it.name == "Low Blood Pressure" || 
-                            it.name == "Thyroid Issues" || 
-                            it.name == "Diabetes" || 
-                            it.name == "High Cholesterol" || 
-                            it.name == "Food Allergies"
-                        }
+                            val requiresDetails = selectedConditions.any { 
+                                it.name == "High Blood Pressure" || 
+                                it.name == "Low Blood Pressure" || 
+                                it.name == "Thyroid Issues" || 
+                                it.name == "Diabetes" || 
+                                it.name == "High Cholesterol" || 
+                                it.name == "Food Allergies"
+                            }
 
-                        if (requiresDetails) {
-                            navController.navigate(Screen.HealthDetails.route)
-                        } else {
-                            navController.navigate(Screen.MealsPerDay.route)
+                            if (requiresDetails) {
+                                navController.navigate(Screen.HealthDetails.route)
+                            } else {
+                                navController.navigate(Screen.MealsPerDay.route)
+                            }
                         }
                     },
                     modifier = Modifier

@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material3.*
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.simats.nutrisoul.data.User
 import com.simats.nutrisoul.data.UserViewModel
 import com.simats.nutrisoul.ui.theme.PrimaryGreen
 import java.util.Calendar
@@ -34,6 +36,7 @@ import java.util.Calendar
 @Composable
 fun HomeScreen(navController: NavController, userViewModel: UserViewModel) {
     val user by userViewModel.user.collectAsStateWithLifecycle()
+    val isLoading by userViewModel.isLoading.collectAsStateWithLifecycle()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -43,31 +46,36 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(innerPadding),
+            contentAlignment = Alignment.Center
         ) {
-            HomeContent(navController, userViewModel)
+            if (isLoading) {
+                CircularProgressIndicator(color = PrimaryGreen)
+            } else if (user != null) {
+                HomeContent(navController, user!!, userViewModel)
+            } else {
+                Text("Error loading user data.")
+            }
         }
     }
 }
 
 @Composable
-fun HomeContent(navController: NavController, userViewModel: UserViewModel) {
-    val user by userViewModel.user.collectAsStateWithLifecycle()
-
+fun HomeContent(navController: NavController, user: User, userViewModel: UserViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        Header(user?.name ?: "User")
+        Header(user.name)
         Spacer(modifier = Modifier.height(24.dp))
         Column(
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            DailyCalorieGoalCard(user?.targetCalories ?: 0.0)
-            WeightProgressCard(user?.currentWeight ?: 0.0, user?.targetWeight ?: 0.0, user?.goal ?: "")
-            TodayActivityCard(navController)
+            DailyCalorieGoalCard(user.targetCalories)
+            WeightProgressCard(user.currentWeight, user.targetWeight)
+            TodayActivityCard(navController, user)
             QuickActionsCard(navController)
             DailyTipCard()
             Spacer(modifier = Modifier.height(24.dp))
@@ -198,7 +206,7 @@ fun DailyCalorieGoalCard(targetCalories: Double) {
 }
 
 @Composable
-fun WeightProgressCard(currentWeight: Double, targetWeight: Double, goal: String) {
+fun WeightProgressCard(currentWeight: Double, targetWeight: Double) {
     Card(
         shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(8.dp),
@@ -219,50 +227,65 @@ fun WeightProgressCard(currentWeight: Double, targetWeight: Double, goal: String
 
             Spacer(Modifier.height(20.dp))
 
-            if (goal == "Maintain Weight" || goal == "Gain Muscle") {
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    WeightBox("Current Weight", "$currentWeight kg", MaterialTheme.colorScheme.onBackground)
-                }
-            } else {
+            if (targetWeight == 0.0) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.Center
                 ) {
-                    WeightBox("Current", "$currentWeight kg", MaterialTheme.colorScheme.onBackground)
-                    WeightBox("Target", "$targetWeight kg", PrimaryGreen)
+                    WeightBox(
+                        label = "Current Weight",
+                        value = "$currentWeight kg",
+                        valueColor = MaterialTheme.colorScheme.onBackground
+                    )
                 }
-
-                Spacer(Modifier.height(16.dp))
-
-                val weightToGoal = if (goal == "Weight Loss") {
-                    (currentWeight - targetWeight).toFloat()
-                } else {
-                    (targetWeight - currentWeight).toFloat()
+            } else {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        WeightBox(
+                            label = "Current",
+                            value = "$currentWeight kg",
+                            valueColor = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.weight(1f)
+                        )
+                        WeightBox(
+                            label = "Target",
+                            value = "$targetWeight kg",
+                            valueColor = PrimaryGreen,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    val weightToGoal = currentWeight - targetWeight
+                    Text(
+                        text = "${String.format("%.1f", weightToGoal)} kg to go",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
-
-                Text(
-                    text = "${String.format("%.1f", weightToGoal)} kg to go",
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
             }
         }
     }
 }
 
 @Composable
-fun RowScope.WeightBox(label: String, value: String, valueColor: Color) {
+fun WeightBox(
+    label: String,
+    value: String,
+    valueColor: Color,
+    modifier: Modifier = Modifier
+) {
     Card(
-        modifier = Modifier.weight(1f),
+        modifier = modifier,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(vertical = 16.dp, horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(label)
@@ -276,8 +299,9 @@ fun RowScope.WeightBox(label: String, value: String, valueColor: Color) {
     }
 }
 
+
 @Composable
-fun TodayActivityCard(navController: NavController) {
+fun TodayActivityCard(navController: NavController, user: User) {
 
     Column {
 
@@ -296,7 +320,7 @@ fun TodayActivityCard(navController: NavController) {
                 modifier = Modifier.weight(1f),
                 icon = Icons.Default.WaterDrop,
                 label = "ml water",
-                value = "0", // Will be replaced with data from ViewModel
+                value = user.todaysWaterIntake.toString(),
                 background = Color(0xFFE3F2FD),
                 iconColor = Color(0xFF42A5F5),
                 onClick = { navController.navigate(Screen.WaterTracking.route) }
@@ -304,7 +328,7 @@ fun TodayActivityCard(navController: NavController) {
 
             ActivityItem(
                 modifier = Modifier.weight(1f),
-                icon = Icons.Default.DirectionsWalk,
+                icon = Icons.AutoMirrored.Filled.DirectionsWalk,
                 label = "steps",
                 value = "0", // Will be replaced with data from ViewModel
                 background = Color(0xFFE8F5E9),

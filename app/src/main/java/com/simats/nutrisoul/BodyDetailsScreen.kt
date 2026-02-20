@@ -216,12 +216,14 @@ fun BodyDetailsScreen(navController: NavHostController, userViewModel: UserViewM
 
                 Button(
                     onClick = {
-                        val user = userViewModel.user.value.copy(
-                            height = height.toDouble(),
-                            currentWeight = weight.toDouble()
-                        )
-                        userViewModel.updateUser(user)
-                        navController.navigate(Screen.FoodPreferences.route)
+                        userViewModel.user.value?.let { currentUser ->
+                            val updatedUser = currentUser.copy(
+                                height = height.toDoubleOrNull() ?: 0.0,
+                                currentWeight = weight.toDoubleOrNull() ?: 0.0
+                            )
+                            userViewModel.updateUser(updatedUser)
+                            navController.navigate(Screen.FoodPreferences.route)
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()

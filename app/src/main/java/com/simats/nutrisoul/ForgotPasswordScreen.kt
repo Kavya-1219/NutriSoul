@@ -121,7 +121,7 @@ fun ForgotPasswordScreen(navController: NavController) {
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .fillMaxHeight(0.7f),
+                .fillMaxHeight(0.6f),
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
@@ -130,6 +130,7 @@ fun ForgotPasswordScreen(navController: NavController) {
                     .fillMaxSize()
                     .padding(24.dp)
             ) {
+                Spacer(modifier = Modifier.height(24.dp))
                 Text("Email Address", style = MaterialTheme.typography.labelLarge)
                 OutlinedTextField(
                     value = email,
@@ -148,7 +149,7 @@ fun ForgotPasswordScreen(navController: NavController) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    "We'll send a password reset link to this email.",
+                    "We\'ll send a password reset link to this email.",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )

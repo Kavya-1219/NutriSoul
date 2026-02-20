@@ -20,9 +20,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -33,6 +33,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,9 +55,10 @@ import kotlin.math.abs
 @Composable
 fun GoalWeightScreen(navController: NavController, userViewModel: UserViewModel) {
 
-    val currentWeight = userViewModel.currentWeight.toInt()
+    val user by userViewModel.user.collectAsState()
+    val currentWeight = user?.currentWeight?.toInt() ?: 0
     var targetWeight by remember { mutableStateOf("") }
-    val goalType = userViewModel.goalType
+    val goalType = user?.goal ?: ""
 
     val target = targetWeight.toIntOrNull()
     val weightDifference =
@@ -192,7 +194,7 @@ fun WeightInfoSection(
                 focusedTextColor = PrimaryGreen
             ),
             trailingIcon = {
-                Icon(Icons.Default.TrendingDown, contentDescription = null, tint = Color(0xFF1565C0))
+                Icon(Icons.AutoMirrored.Filled.TrendingDown, contentDescription = null, tint = Color(0xFF1565C0))
             }
         )
 
@@ -312,7 +314,7 @@ fun TimelineOptionCard(
             Text(info.pace, color = Color.Gray, fontSize = 14.sp)
             Spacer(modifier = Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.TrendingDown, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Gray)
+                Icon(Icons.AutoMirrored.Filled.TrendingDown, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Gray)
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(info.rate, color = Color.Gray, fontSize = 12.sp)
             }

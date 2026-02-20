@@ -213,9 +213,11 @@ fun PlanReadyCard(navController: NavController, mealCount: Int, userViewModel: U
             Spacer(modifier = Modifier.height(20.dp))
             Button(
                 onClick = {
-                    val user = userViewModel.user.value.copy(mealsPerDay = mealCount)
-                    userViewModel.updateUser(user)
-                    navController.navigate(Screen.Home.route) { popUpTo(Screen.Splash.route) { inclusive = true } }
+                    userViewModel.user.value?.let { currentUser ->
+                        val updatedUser = currentUser.copy(mealsPerDay = mealCount)
+                        userViewModel.updateUser(updatedUser)
+                        navController.navigate(Screen.Home.route) { popUpTo(Screen.Splash.route) { inclusive = true } }
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()

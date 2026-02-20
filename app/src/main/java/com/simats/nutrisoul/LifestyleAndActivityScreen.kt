@@ -148,8 +148,10 @@ fun LifestyleAndActivityScreen(navController: NavController, userViewModel: User
 
                  Button(
                     onClick = {
-                        selectedLevel?.let {
-                            userViewModel.updateUser(userViewModel.user.value.copy(activityLevel = it.title))
+                        selectedLevel?.let { level ->
+                            userViewModel.user.value?.let { currentUser ->
+                                userViewModel.updateUser(currentUser.copy(activityLevel = level.title))
+                            }
                         }
                         navController.navigate(Screen.Goals.route)
                     },

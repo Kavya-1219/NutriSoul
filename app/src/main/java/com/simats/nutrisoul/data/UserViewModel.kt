@@ -1,69 +1,92 @@
 package com.simats.nutrisoul.data
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Dispatchers
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.firestore.toObject
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class UserViewModel(private val repository: UserRepository) : ViewModel() {
 
-    private val _user = MutableStateFlow(User())
+    private val _user = MutableStateFlow<User?>(null)
     val user = _user.asStateFlow()
 
-    var goalType by mutableStateOf("")
-    var currentWeight by mutableStateOf(0.0)
-    var targetWeight by mutableStateOf(0.0)
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading = _isLoading.asStateFlow()
+
+    private val auth = FirebaseAuth.getInstance()
+    private val db = Firebase.firestore
 
     init {
-        viewModelScope.launch(Dispatchers.IO) {
-            repository.getLatestUser().firstOrNull()?.let { user ->
-                withContext(Dispatchers.Main) {
-                    _user.value = user
-                    goalType = user.goal
-                    currentWeight = user.currentWeight
-                    targetWeight = user.targetWeight
-                }
+        auth.addAuthStateListener { firebaseAuth ->
+            val firebaseUser = firebaseAuth.currentUser
+            if (firebaseUser != null) {
+                loadUserData(firebaseUser.uid)
+            } else {
+                _user.value = null
+                _isLoading.value = false
             }
         }
     }
 
-    fun updateUser(updatedUser: User) {
-        viewModelScope.launch(Dispatchers.IO) {
-            repository.updateUser(updatedUser)
-            withContext(Dispatchers.Main) {
-                _user.value = updatedUser
-                goalType = updatedUser.goal
-                currentWeight = updatedUser.currentWeight
-                targetWeight = updatedUser.targetWeight
+    private fun loadUserData(uid: String) {
+        _isLoading.value = true
+        db.collection("users").document(uid).get()
+            .addOnSuccessListener { document ->
+                if (document != null && document.exists()) {
+                    _user.value = document.toObject<User>()
+                } else {
+                    _user.value = User() // New user, start with default data
+                }
+                _isLoading.value = false
             }
+            .addOnFailureListener {
+                _isLoading.value = false
+                _user.value = null // Indicate an error state
+            }
+    }
+
+    fun updateUser(updatedUser: User) {
+        val uid = auth.currentUser?.uid
+        if (uid != null) {
+            _user.value = updatedUser
+            db.collection("users").document(uid).set(updatedUser)
         }
     }
 
     fun updateGoal(goal: String) {
-        goalType = goal
-        updateUser(_user.value.copy(goal = goal))
+        _user.value?.let { currentUser ->
+            updateUser(currentUser.copy(goal = goal))
+        }
     }
 
     fun updateTargetWeight(weight: Double) {
-        targetWeight = weight
-        updateUser(_user.value.copy(targetWeight = weight))
+        _user.value?.let { currentUser ->
+            updateUser(currentUser.copy(targetWeight = weight))
+        }
     }
 
     fun updateCurrentWeight(weight: Double) {
-        currentWeight = weight
-        updateUser(_user.value.copy(currentWeight = weight))
+        _user.value?.let { currentUser ->
+            updateUser(currentUser.copy(currentWeight = weight))
+        }
     }
 
     fun addCalories(calories: Double) {
-        val currentCalories = _user.value.todaysCalories
-        updateUser(_user.value.copy(todaysCalories = currentCalories + calories))
+        _user.value?.let { currentUser ->
+            val currentCalories = currentUser.todaysCalories
+            updateUser(currentUser.copy(todaysCalories = currentCalories + calories))
+        }
+    }
+
+    fun updateWaterIntake(amount: Int) {
+        _user.value?.let { currentUser ->
+            val newIntake = (currentUser.todaysWaterIntake + amount).coerceAtLeast(0)
+            updateUser(currentUser.copy(todaysWaterIntake = newIntake))
+        }
     }
 
     fun calculateTargetCalories() {

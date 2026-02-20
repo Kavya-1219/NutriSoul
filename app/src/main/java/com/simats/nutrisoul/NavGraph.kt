@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.simats.nutrisoul.data.UserRepository
 import com.simats.nutrisoul.data.UserViewModel
+import com.simats.nutrisoul.data.UserViewModelFactory
 
 @Composable
 fun NavGraph(navController: NavHostController, repository: UserRepository) {

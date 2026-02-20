@@ -52,18 +52,8 @@ fun WaterTrackingScreen(navController: NavController, userViewModel: UserViewMod
                 HydrationJourneyMessage()
                 GlassSizeSelector(selectedGlassSize) { selectedGlassSize = it }
                 WaterActionButtons(
-                    onAdd = {
-                        val updatedUser = user?.copy(todaysWaterIntake = (user?.todaysWaterIntake ?: 0) + selectedGlassSize)
-                        if (updatedUser != null) {
-                            userViewModel.updateUser(updatedUser)
-                        }
-                    },
-                    onRemove = {
-                        val updatedUser = user?.copy(todaysWaterIntake = ((user?.todaysWaterIntake ?: 0) - selectedGlassSize).coerceAtLeast(0))
-                        if (updatedUser != null) {
-                            userViewModel.updateUser(updatedUser)
-                        }
-                    },
+                    onAdd = { userViewModel.updateWaterIntake(selectedGlassSize) },
+                    onRemove = { userViewModel.updateWaterIntake(-selectedGlassSize) },
                     glassSize = selectedGlassSize
                 )
                 WaterStats(dailyGoal)
@@ -87,7 +77,7 @@ private fun WaterTrackingHeader(navController: NavController) {
         Spacer(Modifier.width(8.dp))
         Column {
             Text(
-                text = "Water Tracking",
+                text = "Hydration Tracking",
                 color = Color.White,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
@@ -232,7 +222,11 @@ private fun WaterActionButtons(onAdd: () -> Unit, onRemove: () -> Unit, glassSiz
 @Composable
 private fun WaterStats(dailyGoal: Int) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-        Card(modifier = Modifier.weight(1f)) {
+        Card(
+            modifier = Modifier.weight(1f),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, Color.LightGray.copy(alpha=0.5f))
+        ) {
             Column(Modifier.padding(16.dp)) {
                 Icon(Icons.Default.TrackChanges, contentDescription = null, tint = Color(0xFF00C853))
                 Text("Daily Goal", fontWeight = FontWeight.Bold)
@@ -241,7 +235,11 @@ private fun WaterStats(dailyGoal: Int) {
             }
         }
         Spacer(Modifier.width(16.dp))
-        Card(modifier = Modifier.weight(1f)) {
+        Card(
+            modifier = Modifier.weight(1f),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, Color.LightGray.copy(alpha=0.5f))
+        ) {
             Column(Modifier.padding(16.dp)) {
                 Icon(Icons.Default.BarChart, contentDescription = null, tint = Color(0xFF00B2FF))
                 Text("7-Day Avg", fontWeight = FontWeight.Bold)

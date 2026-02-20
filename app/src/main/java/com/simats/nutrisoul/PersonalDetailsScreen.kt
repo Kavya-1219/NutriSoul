@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.simats.nutrisoul.data.User
 import com.simats.nutrisoul.data.UserViewModel
 import com.simats.nutrisoul.ui.theme.PrimaryGreen
 
@@ -190,12 +191,16 @@ fun PersonalDetailsScreen(
 
                 Button(
                     onClick = {
-                        val user = userViewModel.user.value.copy(
+                        val updatedUser = userViewModel.user.value?.copy(
+                            name = fullName,
+                            age = age.toIntOrNull() ?: 0,
+                            gender = selectedGender
+                        ) ?: User(
                             name = fullName,
                             age = age.toIntOrNull() ?: 0,
                             gender = selectedGender
                         )
-                        userViewModel.updateUser(user)
+                        userViewModel.updateUser(updatedUser)
                         onContinueClicked()
                     },
                     enabled = isContinueEnabled,

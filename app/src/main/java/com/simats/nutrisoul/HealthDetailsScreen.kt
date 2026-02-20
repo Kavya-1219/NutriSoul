@@ -63,7 +63,7 @@ val healthConditionIcons = mapOf(
 fun HealthDetailsScreen(navController: NavController, userViewModel: UserViewModel) {
 
     val user by userViewModel.user.collectAsState()
-    val selectedHealthConditions = user.healthConditions
+    val selectedHealthConditions = user?.healthConditions ?: emptyList()
 
     var systolic by remember { mutableStateOf("") }
     var diastolic by remember { mutableStateOf("") }
@@ -138,17 +138,19 @@ fun HealthDetailsScreen(navController: NavController, userViewModel: UserViewMod
                 }
                 Button(
                     onClick = {
-                        val updatedUser = user.copy(
-                            systolic = systolic.toIntOrNull(),
-                            diastolic = diastolic.toIntOrNull(),
-                            thyroidCondition = selectedThyroid,
-                            diabetesType = selectedDiabetes,
-                            cholesterolLevel = cholesterol.toIntOrNull(),
-                            foodAllergies = selectedFoodAllergies,
-                            otherAllergies = otherAllergies
-                        )
-                        userViewModel.updateUser(updatedUser)
-                        navController.navigate(Screen.MealsPerDay.route)
+                        user?.let { currentUser ->
+                            val updatedUser = currentUser.copy(
+                                systolic = systolic.toIntOrNull(),
+                                diastolic = diastolic.toIntOrNull(),
+                                thyroidCondition = selectedThyroid,
+                                diabetesType = selectedDiabetes,
+                                cholesterolLevel = cholesterol.toIntOrNull(),
+                                foodAllergies = selectedFoodAllergies,
+                                otherAllergies = otherAllergies
+                            )
+                            userViewModel.updateUser(updatedUser)
+                            navController.navigate(Screen.MealsPerDay.route)
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
