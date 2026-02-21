@@ -1,6 +1,8 @@
 package com.simats.nutrisoul
 
+import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -10,8 +12,12 @@ import com.simats.nutrisoul.data.UserViewModel
 import com.simats.nutrisoul.data.UserViewModelFactory
 
 @Composable
-fun NavGraph(navController: NavHostController, repository: UserRepository) {
-    val userViewModel: UserViewModel = viewModel(factory = UserViewModelFactory(repository))
+fun NavGraph(
+    navController: NavHostController,
+    repository: UserRepository
+) {
+    val context = LocalContext.current
+    val userViewModel: UserViewModel = viewModel(factory = UserViewModelFactory(repository, context))
 
     NavHost(navController = navController, startDestination = Screen.Splash.route) {
         composable(Screen.Splash.route) {
@@ -83,7 +89,7 @@ fun NavGraph(navController: NavHostController, repository: UserRepository) {
             WaterTrackingScreen(navController = navController, userViewModel = userViewModel)
         }
         composable(Screen.StepsTracking.route) {
-            StepsTrackingScreen(navController = navController)
+            StepsTrackingScreen(navController = navController, userViewModel = userViewModel)
         }
         composable(Screen.LogFood.route) {
             LogFoodScreen(navController = navController, userViewModel = userViewModel)

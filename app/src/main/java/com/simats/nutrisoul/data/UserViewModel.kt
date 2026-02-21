@@ -1,7 +1,7 @@
 package com.simats.nutrisoul.data
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.firestore.toObject
@@ -9,7 +9,7 @@ import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class UserViewModel(private val repository: UserRepository) : ViewModel() {
+class UserViewModel(private val repository: UserRepository, private val context: Context) : ViewModel() {
 
     private val _user = MutableStateFlow<User?>(null)
     val user = _user.asStateFlow()
@@ -17,10 +17,15 @@ class UserViewModel(private val repository: UserRepository) : ViewModel() {
     private val _isLoading = MutableStateFlow(true)
     val isLoading = _isLoading.asStateFlow()
 
+    private val _automaticTracking = MutableStateFlow(false)
+    val automaticTracking = _automaticTracking.asStateFlow()
+
     private val auth = FirebaseAuth.getInstance()
     private val db = Firebase.firestore
 
     init {
+        _automaticTracking.value = false
+
         auth.addAuthStateListener { firebaseAuth ->
             val firebaseUser = firebaseAuth.currentUser
             if (firebaseUser != null) {
@@ -86,6 +91,23 @@ class UserViewModel(private val repository: UserRepository) : ViewModel() {
         _user.value?.let { currentUser ->
             val newIntake = (currentUser.todaysWaterIntake + amount).coerceAtLeast(0)
             updateUser(currentUser.copy(todaysWaterIntake = newIntake))
+        }
+    }
+
+    fun updateSteps(steps: Int) {
+        _user.value?.let { currentUser ->
+            val newSteps = (currentUser.todaysSteps + steps).coerceAtLeast(0)
+            updateUser(currentUser.copy(todaysSteps = newSteps))
+        }
+    }
+
+    fun setAutomaticTracking(enabled: Boolean) {
+        _automaticTracking.value = enabled
+    }
+
+    fun updateStepsFromSensor(steps: Int) {
+        _user.value?.let { currentUser ->
+            updateUser(currentUser.copy(todaysSteps = steps))
         }
     }
 

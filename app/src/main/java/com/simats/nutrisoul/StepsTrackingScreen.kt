@@ -1,21 +1,57 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
 package com.simats.nutrisoul
 
-import android.content.Context
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.hardware.SensorManager
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,7 +61,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.simats.nutrisoul.data.User
+import com.simats.nutrisoul.data.UserViewModel
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -33,57 +73,25 @@ import java.util.Locale
 //    MAIN SCREEN
 // -------------------------------
 @Composable
-fun StepsTrackingScreen(navController: NavController) {
+fun StepsTrackingScreen(navController: NavController, userViewModel: UserViewModel) {
 
+    val user by userViewModel.user.collectAsStateWithLifecycle()
+    val automaticTracking by userViewModel.automaticTracking.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { isGranted ->
+        if (isGranted) {
+            userViewModel.setAutomaticTracking(true)
+        }
+    }
 
     // States
     var selectedGoal by remember { mutableStateOf("5k") }
     var showManualEntryDialog by remember { mutableStateOf(false) }
     var showAddStepsChoiceDialog by remember { mutableStateOf(false) }
     var showRemoveStepsDialog by remember { mutableStateOf(false) }
-
-    // Steps + sensor baseline
-    var steps by remember { mutableStateOf(0) }
-    var baseline by remember { mutableStateOf(-1f) }
-    var automaticTracking by remember { mutableStateOf(true) }
-
-    // Sensor Manager
-    val sensorManager = remember {
-        context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    }
-    val stepSensor = remember {
-        sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
-    }
-
-    // Automatic Tracking Listener
-    DisposableEffect(automaticTracking) {
-
-        val listener = object : SensorEventListener {
-            override fun onSensorChanged(event: SensorEvent?) {
-                if (!automaticTracking) return
-                if (event == null) return
-
-                val totalSteps = event.values[0]
-
-                if (baseline == -1f) {
-                    baseline = totalSteps
-                }
-
-                steps = (totalSteps - baseline).toInt().coerceAtLeast(0)
-            }
-
-            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
-        }
-
-        if (automaticTracking && stepSensor != null) {
-            sensorManager.registerListener(listener, stepSensor, SensorManager.SENSOR_DELAY_NORMAL)
-        }
-
-        onDispose {
-            sensorManager.unregisterListener(listener)
-        }
-    }
 
     val goalInSteps = selectedGoal.replace("k", "000").toInt()
 
@@ -110,16 +118,30 @@ fun StepsTrackingScreen(navController: NavController) {
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
 
-                StepsProgress(steps, goalInSteps)
+                user?.let { StepsProgress(it.todaysSteps, goalInSteps) }
 
                 TrackingModeSwitch(
                     automaticTracking = automaticTracking,
-                    onCheckedChange = { automaticTracking = it }
+                    onCheckedChange = { checked ->
+                        if (checked) {
+                            if (ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.ACTIVITY_RECOGNITION
+                                ) == PackageManager.PERMISSION_GRANTED
+                            ) {
+                                userViewModel.setAutomaticTracking(true)
+                            } else {
+                                permissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+                            }
+                        } else {
+                            userViewModel.setAutomaticTracking(false)
+                        }
+                    }
                 )
 
                 MotivationMessage()
 
-                InfoBoxes(steps)
+                user?.let { InfoBoxes(it.todaysSteps) }
 
                 DailyGoal(selectedGoal) { selectedGoal = it }
 
@@ -147,7 +169,7 @@ fun StepsTrackingScreen(navController: NavController) {
         AddStepsChoiceDialog(
             onDismiss = { showAddStepsChoiceDialog = false },
             onAddFromGoal = {
-                steps += goalInSteps
+                userViewModel.updateSteps(goalInSteps)
                 showAddStepsChoiceDialog = false
             },
             onEnterManually = {
@@ -162,9 +184,10 @@ fun StepsTrackingScreen(navController: NavController) {
         ManualStepsDialog(
             onDismiss = { showManualEntryDialog = false },
             onSubmit = { addedSteps ->
-                steps += addedSteps
+                userViewModel.updateSteps(addedSteps)
                 showManualEntryDialog = false
-            }
+            },
+            showHonestyMessage = true
         )
     }
 
@@ -172,11 +195,12 @@ fun StepsTrackingScreen(navController: NavController) {
         ManualStepsDialog(
             onDismiss = { showRemoveStepsDialog = false },
             onSubmit = { removedSteps ->
-                steps = (steps - removedSteps).coerceAtLeast(0)
+                userViewModel.updateSteps(-removedSteps)
                 showRemoveStepsDialog = false
             },
             title = "Remove Steps Manually",
-            submitButtonText = "Remove"
+            submitButtonText = "Remove",
+            showHonestyMessage = false
         )
     }
 }
@@ -263,6 +287,7 @@ private fun StepsProgress(steps: Int, goalInSteps: Int) {
 private fun TrackingModeSwitch(automaticTracking: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Card(
         shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.4f)),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -491,6 +516,9 @@ fun AddStepsChoiceDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.border(1.dp, Color.Black, RoundedCornerShape(28.dp)),
+        shape = RoundedCornerShape(28.dp),
+        containerColor = Color.White,
         title = { Text("Add Steps") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -525,12 +553,16 @@ fun ManualStepsDialog(
     onDismiss: () -> Unit,
     onSubmit: (Int) -> Unit,
     title: String = "Add Steps Manually",
-    submitButtonText: String = "Add"
+    submitButtonText: String = "Add",
+    showHonestyMessage: Boolean
 ) {
     var input by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.border(1.dp, Color.Black, RoundedCornerShape(28.dp)),
+        shape = RoundedCornerShape(28.dp),
+        containerColor = Color.White,
         confirmButton = {
             TextButton(onClick = {
                 val value = input.toIntOrNull() ?: 0
@@ -547,8 +579,10 @@ fun ManualStepsDialog(
         title = { Text(title) },
         text = {
             Column {
-                Text("Stay honest—entering fake steps only misleads you, not the app.")
-                Spacer(Modifier.height(8.dp))
+                if (showHonestyMessage) {
+                    Text("Stay honest—entering fake steps only misleads you, not the app.")
+                    Spacer(Modifier.height(8.dp))
+                }
                 OutlinedTextField(
                     value = input,
                     onValueChange = { input = it },

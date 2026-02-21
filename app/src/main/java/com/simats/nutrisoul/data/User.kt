@@ -21,6 +21,7 @@ data class User(
     val targetCalories: Double = 0.0,
     val todaysCalories: Double = 0.0,
     val todaysWaterIntake: Int = 0,
+    val todaysSteps: Int = 0,
     val dietaryRestrictions: String = "",
     val allergies: List<String> = emptyList(),
     val dislikes: List<String> = emptyList(),

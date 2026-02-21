@@ -46,6 +46,7 @@ fun RegisterScreen(navController: NavController, authViewModel: AuthViewModel = 
         is AuthState.Authenticated -> {
             AlertDialog(
                 onDismissRequest = { /* Prevent dismissing by clicking outside */ },
+                containerColor = Color.White,
                 title = {
                     Text(
                         "Welcome to NutriSoul 🎉",
@@ -70,14 +71,14 @@ fun RegisterScreen(navController: NavController, authViewModel: AuthViewModel = 
                     ) {
                         Text("Continue", color = Color.White)
                     }
-                },
-                containerColor = Color.White
+                }
             )
         }
         is AuthState.Error -> {
             val error = (authState as AuthState.Error).message
             AlertDialog(
                 onDismissRequest = { authViewModel.resetAuthState() },
+                containerColor = Color.White,
                 title = { Text("Registration Failed") },
                 text = { Text(error) },
                 confirmButton = {
@@ -87,8 +88,7 @@ fun RegisterScreen(navController: NavController, authViewModel: AuthViewModel = 
                     ) {
                         Text("OK", color = Color.White)
                     }
-                },
-                containerColor = Color.White
+                }
             )
         }
         else -> Unit

@@ -59,6 +59,7 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
             val error = (authState as AuthState.Error).message
             AlertDialog(
                 onDismissRequest = { authViewModel.resetAuthState() },
+                containerColor = Color.White,
                 title = { Text("Unable to Sign In", style = MaterialTheme.typography.titleLarge) },
                 text = { Text(error) },
                 confirmButton = {

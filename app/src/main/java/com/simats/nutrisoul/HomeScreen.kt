@@ -74,7 +74,7 @@ fun HomeContent(navController: NavController, user: User, userViewModel: UserVie
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             DailyCalorieGoalCard(user.targetCalories)
-            WeightProgressCard(user.currentWeight, user.targetWeight)
+            WeightProgressCard(user.currentWeight, user.targetWeight, user.goal)
             TodayActivityCard(navController, user)
             QuickActionsCard(navController)
             DailyTipCard()
@@ -206,7 +206,7 @@ fun DailyCalorieGoalCard(targetCalories: Double) {
 }
 
 @Composable
-fun WeightProgressCard(currentWeight: Double, targetWeight: Double) {
+fun WeightProgressCard(currentWeight: Double, targetWeight: Double, goal: String) {
     Card(
         shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(8.dp),
@@ -227,7 +227,10 @@ fun WeightProgressCard(currentWeight: Double, targetWeight: Double) {
 
             Spacer(Modifier.height(20.dp))
 
-            if (targetWeight == 0.0) {
+            val isMaintainOrGain = goal.equals("Maintain Weight", ignoreCase = true) ||
+                    goal.equals("Gain Muscle", ignoreCase = true)
+
+            if (isMaintainOrGain) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center
@@ -257,14 +260,23 @@ fun WeightProgressCard(currentWeight: Double, targetWeight: Double) {
                             modifier = Modifier.weight(1f)
                         )
                     }
+
                     Spacer(Modifier.height(16.dp))
-                    val weightToGoal = currentWeight - targetWeight
-                    Text(
-                        text = "${String.format("%.1f", weightToGoal)} kg to go",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+
+                    val weightToGoal = if (goal.equals("Weight Loss", ignoreCase = true)) {
+                        currentWeight - targetWeight
+                    } else {
+                        targetWeight - currentWeight
+                    }
+
+                    if (targetWeight > 0 && weightToGoal != 0.0) {
+                        Text(
+                            text = "${String.format("%.1f", weightToGoal)} kg to go",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
         }
@@ -330,10 +342,10 @@ fun TodayActivityCard(navController: NavController, user: User) {
                 modifier = Modifier.weight(1f),
                 icon = Icons.AutoMirrored.Filled.DirectionsWalk,
                 label = "steps",
-                value = "0", // Will be replaced with data from ViewModel
+                value = user.todaysSteps.toString(),
                 background = Color(0xFFE8F5E9),
                 iconColor = Color(0xFF66BB6A),
-                onClick = { navController.navigate("steps_tracking") }
+                onClick = { navController.navigate(Screen.StepsTracking.route) }
             )
         }
     }
