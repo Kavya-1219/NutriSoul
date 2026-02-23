@@ -6,10 +6,14 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-@Database(entities = [User::class], version = 1, exportSchema = false) // Reset version for new DB
-@TypeConverters(DateConverter::class, StringListConverter::class)
+@Database(entities = [FoodItem::class, LoggedFood::class, User::class, IntakeEntity::class, CustomFoodEntity::class], version = 4, exportSchema = false)
+@TypeConverters(DateConverter::class, Converters::class, DateConverters::class)
 abstract class AppDatabase : RoomDatabase() {
+
+    abstract fun foodDao(): FoodDao
     abstract fun userDao(): UserDao
+    abstract fun intakeDao(): IntakeDao
+    abstract fun customFoodDao(): CustomFoodDao
 
     companion object {
         @Volatile
@@ -20,10 +24,8 @@ abstract class AppDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "personalised_nutrition_app.db" // <-- CHANGED DATABASE FILENAME
-                )
-                .fallbackToDestructiveMigration()
-                .build()
+                    "nutrisoul_database"
+                ).fallbackToDestructiveMigration().build()
                 INSTANCE = instance
                 instance
             }

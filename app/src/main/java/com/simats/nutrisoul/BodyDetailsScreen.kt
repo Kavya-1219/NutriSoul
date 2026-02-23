@@ -218,8 +218,8 @@ fun BodyDetailsScreen(navController: NavHostController, userViewModel: UserViewM
                     onClick = {
                         userViewModel.user.value?.let { currentUser ->
                             val updatedUser = currentUser.copy(
-                                height = height.toDoubleOrNull() ?: 0.0,
-                                currentWeight = weight.toDoubleOrNull() ?: 0.0
+                                height = height.toFloatOrNull() ?: 0.0f,
+                                currentWeight = weight.toFloatOrNull() ?: 0.0f
                             )
                             userViewModel.updateUser(updatedUser)
                             navController.navigate(Screen.FoodPreferences.route)

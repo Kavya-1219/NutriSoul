@@ -1,15 +1,20 @@
 package com.simats.nutrisoul.data
 
-import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.firestore.toObject
 import com.google.firebase.ktx.Firebase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import javax.inject.Inject
 
-class UserViewModel(private val repository: UserRepository, private val context: Context) : ViewModel() {
+@HiltViewModel
+class UserViewModel @Inject constructor(private val repository: UserRepository) : ViewModel() {
 
     private val _user = MutableStateFlow<User?>(null)
     val user = _user.asStateFlow()
@@ -24,12 +29,10 @@ class UserViewModel(private val repository: UserRepository, private val context:
     private val db = Firebase.firestore
 
     init {
-        _automaticTracking.value = false
-
         auth.addAuthStateListener { firebaseAuth ->
             val firebaseUser = firebaseAuth.currentUser
             if (firebaseUser != null) {
-                loadUserData(firebaseUser.uid)
+                loadUserData(firebaseUser.uid, Source.DEFAULT)
             } else {
                 _user.value = null
                 _isLoading.value = false
@@ -37,21 +40,90 @@ class UserViewModel(private val repository: UserRepository, private val context:
         }
     }
 
-    private fun loadUserData(uid: String) {
+    private fun loadUserData(uid: String, source: Source) {
         _isLoading.value = true
-        db.collection("users").document(uid).get()
+        val docRef = db.collection("users").document(uid)
+        docRef.get(source)
             .addOnSuccessListener { document ->
                 if (document != null && document.exists()) {
-                    _user.value = document.toObject<User>()
+                    try {
+                        val user = mapDocumentToUser(document)
+                        _user.value = user
+                        _isLoading.value = false
+
+                        // After successfully loading, check if a migration is needed and perform it.
+                        val restrictionsField = document.get("dietaryRestrictions")
+                        if (restrictionsField is String) {
+                            val updatedRestrictions = if (restrictionsField.isBlank()) emptyList() else listOf(restrictionsField)
+                            docRef.update("dietaryRestrictions", updatedRestrictions)
+                                .addOnFailureListener { e ->
+                                    Log.e("UserViewModel", "Failed to update dietaryRestrictions", e)
+                                }
+                        }
+
+                    } catch (e: Exception) {
+                        Log.e("UserViewModel", "Error mapping user document", e)
+                        _isLoading.value = false
+                        _user.value = null
+                    }
                 } else {
-                    _user.value = User() // New user, start with default data
+                    // Document doesn't exist, create a new user profile
+                    _user.value = User()
+                    _isLoading.value = false
                 }
-                _isLoading.value = false
             }
-            .addOnFailureListener {
+            .addOnFailureListener { e ->
+                Log.e("UserViewModel", "Failed to load user data", e)
                 _isLoading.value = false
                 _user.value = null // Indicate an error state
             }
+    }
+
+    private fun mapDocumentToUser(doc: DocumentSnapshot): User {
+        // Safely extract and convert dietaryRestrictions
+        val dietaryRestrictionsRaw = doc.get("dietaryRestrictions")
+        val dietaryRestrictions = when (dietaryRestrictionsRaw) {
+            is String -> if (dietaryRestrictionsRaw.isBlank()) emptyList() else listOf(dietaryRestrictionsRaw)
+            is List<*> -> dietaryRestrictionsRaw.mapNotNull { it as? String }
+            else -> emptyList()
+        }
+
+        // Helper function for safe number conversion
+        fun getFloat(field: String): Float = (doc.get(field) as? Number)?.toFloat() ?: 0f
+        fun getInt(field: String): Int = (doc.get(field) as? Number)?.toInt() ?: 0
+
+        return User(
+            id = getInt("id"),
+            name = doc.getString("name") ?: "",
+            age = getInt("age"),
+            gender = doc.getString("gender") ?: "",
+            height = getFloat("height"),
+            weight = getFloat("weight"),
+            activityLevel = doc.getString("activityLevel") ?: "",
+            goal = doc.getString("goal") ?: "",
+            targetWeight = getFloat("targetWeight"),
+            currentWeight = getFloat("currentWeight"),
+            mealsPerDay = getInt("mealsPerDay"),
+            healthConditions = (doc.get("healthConditions") as? List<*>)?.mapNotNull { it.toString() } ?: emptyList(),
+            todaysCalories = getInt("todaysCalories"),
+            todaysWaterIntake = getInt("todaysWaterIntake"),
+            todaysSteps = getInt("todaysSteps"),
+            bmr = getInt("bmr"),
+            lastLogin = doc.getTimestamp("lastLogin") ?: Timestamp.now(),
+            allergies = (doc.get("allergies") as? List<*>)?.mapNotNull { it.toString() } ?: emptyList(),
+            foodAllergies = (doc.get("foodAllergies") as? List<*>)?.mapNotNull { it.toString() } ?: emptyList(),
+            cholesterolLevel = doc.getString("cholesterolLevel") ?: "",
+            password = doc.getString("password") ?: "",
+            dietaryRestrictions = dietaryRestrictions,
+            otherAllergies = doc.getString("otherAllergies") ?: "",
+            email = doc.getString("email") ?: "",
+            dislikes = (doc.get("dislikes") as? List<*>)?.mapNotNull { it.toString() } ?: emptyList(),
+            diabetesType = doc.getString("diabetesType") ?: "",
+            diastolic = getInt("diastolic"),
+            systolic = getInt("systolic"),
+            thyroidCondition = doc.getString("thyroidCondition") ?: "",
+            targetCalories = getInt("targetCalories")
+        )
     }
 
     fun updateUser(updatedUser: User) {
@@ -62,25 +134,31 @@ class UserViewModel(private val repository: UserRepository, private val context:
         }
     }
 
+    fun retryLoadUserData() {
+        auth.currentUser?.uid?.let {
+            loadUserData(it, Source.SERVER)
+        }
+    }
+
     fun updateGoal(goal: String) {
         _user.value?.let { currentUser ->
             updateUser(currentUser.copy(goal = goal))
         }
     }
 
-    fun updateTargetWeight(weight: Double) {
+    fun updateTargetWeight(weight: Float) {
         _user.value?.let { currentUser ->
             updateUser(currentUser.copy(targetWeight = weight))
         }
     }
 
-    fun updateCurrentWeight(weight: Double) {
+    fun updateCurrentWeight(weight: Float) {
         _user.value?.let { currentUser ->
             updateUser(currentUser.copy(currentWeight = weight))
         }
     }
 
-    fun addCalories(calories: Double) {
+    fun addCalories(calories: Int) {
         _user.value?.let { currentUser ->
             val currentCalories = currentUser.todaysCalories
             updateUser(currentUser.copy(todaysCalories = currentCalories + calories))

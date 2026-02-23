@@ -139,14 +139,26 @@ fun HealthDetailsScreen(navController: NavController, userViewModel: UserViewMod
                 Button(
                     onClick = {
                         user?.let { currentUser ->
+                            val healthDetails = mutableListOf<String>()
+                            if (systolic.isNotBlank() && diastolic.isNotBlank()) {
+                                healthDetails.add("Blood Pressure: $systolic/$diastolic")
+                            }
+                            selectedThyroid?.let { healthDetails.add("Thyroid: $it") }
+                            selectedDiabetes?.let { healthDetails.add("Diabetes Type: $it") }
+                            if (cholesterol.isNotBlank()) {
+                                healthDetails.add("Cholesterol: $cholesterol")
+                            }
+                            if (selectedFoodAllergies.isNotEmpty()) {
+                                healthDetails.add("Food Allergies: ${selectedFoodAllergies.joinToString()}")
+                            }
+                            if (otherAllergies.isNotBlank()) {
+                                healthDetails.add("Other Allergies: $otherAllergies")
+                            }
+
+                            val updatedHealthConditions = currentUser.healthConditions + healthDetails
+
                             val updatedUser = currentUser.copy(
-                                systolic = systolic.toIntOrNull(),
-                                diastolic = diastolic.toIntOrNull(),
-                                thyroidCondition = selectedThyroid,
-                                diabetesType = selectedDiabetes,
-                                cholesterolLevel = cholesterol.toIntOrNull(),
-                                foodAllergies = selectedFoodAllergies,
-                                otherAllergies = otherAllergies
+                                healthConditions = updatedHealthConditions.distinct()
                             )
                             userViewModel.updateUser(updatedUser)
                             navController.navigate(Screen.MealsPerDay.route)

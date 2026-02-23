@@ -198,7 +198,19 @@ fun PersonalDetailsScreen(
                         ) ?: User(
                             name = fullName,
                             age = age.toIntOrNull() ?: 0,
-                            gender = selectedGender
+                            gender = selectedGender,
+                            height = 0f,
+                            weight = 0f,
+                            activityLevel = "",
+                            goal = "",
+                            targetWeight = 0f,
+                            currentWeight = 0f,
+                            mealsPerDay = 0,
+                            healthConditions = emptyList(),
+                            todaysCalories = 0,
+                            todaysWaterIntake = 0,
+                            todaysSteps = 0,
+                            bmr = 0
                         )
                         userViewModel.updateUser(updatedUser)
                         onContinueClicked()

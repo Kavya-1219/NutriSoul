@@ -26,21 +26,24 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.simats.nutrisoul.data.User
 import com.simats.nutrisoul.data.UserViewModel
+import com.simats.nutrisoul.ui.DailyTotalsUi
 import com.simats.nutrisoul.ui.theme.PrimaryGreen
 import java.util.Calendar
 
 @Composable
-fun HomeScreen(navController: NavController, userViewModel: UserViewModel) {
+fun HomeScreen(navController: NavController, userViewModel: UserViewModel, homeViewModel: HomeViewModel = hiltViewModel()) {
     val user by userViewModel.user.collectAsStateWithLifecycle()
     val isLoading by userViewModel.isLoading.collectAsStateWithLifecycle()
+    val totals by homeViewModel.todayTotals.collectAsState()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = { BottomNavigationBar(onItemSelected = {}) }
+        bottomBar = { BottomNavigationBar(navController = navController) }
     ) { innerPadding ->
 
         Box(
@@ -52,16 +55,28 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel) {
             if (isLoading) {
                 CircularProgressIndicator(color = PrimaryGreen)
             } else if (user != null) {
-                HomeContent(navController, user!!, userViewModel)
+                HomeContent(navController, user!!, totals, userViewModel)
             } else {
-                Text("Error loading user data.")
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Error loading user data.")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = { userViewModel.retryLoadUserData() }) {
+                        Text("Retry")
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun HomeContent(navController: NavController, user: User, userViewModel: UserViewModel) {
+fun HomeContent(navController: NavController, user: User, totals: DailyTotalsUi, userViewModel: UserViewModel) {
+    val targetCalories = when (user.goal) {
+        "Weight Loss" -> user.bmr - 500
+        "Gain Muscle" -> user.bmr + 500
+        else -> user.bmr
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -73,7 +88,7 @@ fun HomeContent(navController: NavController, user: User, userViewModel: UserVie
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            DailyCalorieGoalCard(user.targetCalories)
+            DailyCalorieGoalCard(targetCalories, totals)
             WeightProgressCard(user.currentWeight, user.targetWeight, user.goal)
             TodayActivityCard(navController, user)
             QuickActionsCard(navController)
@@ -140,9 +155,9 @@ fun Header(name: String) {
 }
 
 @Composable
-fun DailyCalorieGoalCard(targetCalories: Double) {
-    val consumed = 0 // This will be updated later from the database
-    val goal = targetCalories.toInt()
+fun DailyCalorieGoalCard(targetCalories: Int, totals: DailyTotalsUi) {
+    val consumed = totals.calories
+    val goal = targetCalories
     val remaining = goal - consumed
 
     Card(
@@ -174,7 +189,7 @@ fun DailyCalorieGoalCard(targetCalories: Double) {
                 textAlign = TextAlign.Center,
                 text = buildAnnotatedString {
                     withStyle(SpanStyle(fontSize = 48.sp, fontWeight = FontWeight.Bold)) {
-                        append(consumed.toString())
+                        append(consumed.toInt().toString())
                     }
                     withStyle(SpanStyle(fontSize = 22.sp, color = Color.Gray)) {
                         append(" / $goal")
@@ -197,7 +212,7 @@ fun DailyCalorieGoalCard(targetCalories: Double) {
             Spacer(Modifier.height(12.dp))
 
             Text(
-                "Remaining: $remaining kcal",
+                "Remaining: ${remaining.toInt()} kcal",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp
             )
@@ -206,7 +221,7 @@ fun DailyCalorieGoalCard(targetCalories: Double) {
 }
 
 @Composable
-fun WeightProgressCard(currentWeight: Double, targetWeight: Double, goal: String) {
+fun WeightProgressCard(currentWeight: Float, targetWeight: Float, goal: String) {
     Card(
         shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(8.dp),
@@ -269,7 +284,7 @@ fun WeightProgressCard(currentWeight: Double, targetWeight: Double, goal: String
                         targetWeight - currentWeight
                     }
 
-                    if (targetWeight > 0 && weightToGoal != 0.0) {
+                    if (targetWeight > 0 && weightToGoal != 0.0f) {
                         Text(
                             text = "${String.format("%.1f", weightToGoal)} kg to go",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -396,14 +411,14 @@ fun QuickActionsCard(navController: NavController) {
 
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             QuickActionItem("Log Food", Icons.Default.Add, Color(0xFF66BB6A)) { navController.navigate(Screen.LogFood.route) }
-            QuickActionItem("Meal Plan", Icons.Default.CameraAlt, Color(0xFF42A5F5)) {}
+            QuickActionItem("Meal Plan", Icons.Default.Restaurant, Color(0xFF42A5F5)) { navController.navigate(Screen.MealPlan.route) }
         }
 
         Spacer(Modifier.height(16.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             QuickActionItem("AI Tips", Icons.Default.Psychology, Color(0xFFAB47BC)) { navController.navigate(Screen.AiTips.route) }
-            QuickActionItem("History", Icons.Default.History, Color(0xFFFF7043)) {}
+            QuickActionItem("History", Icons.Default.History, Color(0xFFFF7043)) { navController.navigate(Screen.History.route) }
         }
     }
 }
@@ -474,6 +489,28 @@ fun DailyTipCard() {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun BottomNavigationBar(navController: NavController) {
+    val items = listOf(
+        Screen.Home,
+        Screen.StressAndSleep,
+        Screen.Recipes,
+        Screen.Insights,
+        Screen.Settings
+    )
+    NavigationBar {
+        val currentRoute = navController.currentBackStackEntry?.destination?.route
+        items.forEach { screen ->
+            NavigationBarItem(
+                icon = { Icon(screen.icon, contentDescription = screen.title) },
+                label = { Text(screen.title) },
+                selected = currentRoute == screen.route,
+                onClick = { navController.navigate(screen.route) }
+            )
         }
     }
 }

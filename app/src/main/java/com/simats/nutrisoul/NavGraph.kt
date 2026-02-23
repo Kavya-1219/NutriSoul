@@ -1,23 +1,22 @@
 package com.simats.nutrisoul
 
-import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.simats.nutrisoul.data.UserRepository
 import com.simats.nutrisoul.data.UserViewModel
-import com.simats.nutrisoul.data.UserViewModelFactory
 
 @Composable
 fun NavGraph(
-    navController: NavHostController,
-    repository: UserRepository
+    navController: NavHostController
 ) {
-    val context = LocalContext.current
-    val userViewModel: UserViewModel = viewModel(factory = UserViewModelFactory(repository, context))
+    val userViewModel: UserViewModel = hiltViewModel()
+    val logFoodViewModel: LogFoodViewModel = hiltViewModel()
+    val homeViewModel: HomeViewModel = hiltViewModel()
+    val mealPlanViewModel: MealPlanViewModel = hiltViewModel()
+    val historyViewModel: HistoryViewModel = hiltViewModel()
+    val nutritionInsightsViewModel: NutritionInsightsViewModel = hiltViewModel()
 
     NavHost(navController = navController, startDestination = Screen.Splash.route) {
         composable(Screen.Splash.route) {
@@ -83,7 +82,7 @@ fun NavGraph(
             MealPerDayScreen(navController = navController, userViewModel = userViewModel)
         }
         composable(Screen.Home.route) {
-            HomeScreen(navController = navController, userViewModel = userViewModel)
+            HomeScreen(navController = navController, userViewModel = userViewModel, homeViewModel = homeViewModel)
         }
         composable(Screen.WaterTracking.route) {
             WaterTrackingScreen(navController = navController, userViewModel = userViewModel)
@@ -91,17 +90,25 @@ fun NavGraph(
         composable(Screen.StepsTracking.route) {
             StepsTrackingScreen(navController = navController, userViewModel = userViewModel)
         }
+
         composable(Screen.LogFood.route) {
-            LogFoodScreen(navController = navController, userViewModel = userViewModel)
+            LogFoodScreen(navController = navController, viewModel = logFoodViewModel)
+        }
+
+        composable(Screen.ScanFood.route) {
+            ScanFoodScreen(viewModel = logFoodViewModel)
+        }
+        composable(Screen.ManualFoodEntry.route) {
+            ManualFoodEntryScreen(navController = navController, viewModel = logFoodViewModel)
         }
         composable(Screen.MealPlan.route) {
-            MealPlanScreen(navController = navController, userViewModel = userViewModel)
+            TodaysMealPlanScreen(navController = navController, viewModel = mealPlanViewModel)
         }
         composable(Screen.AiTips.route) {
             AiTipsScreen(navController = navController, userViewModel = userViewModel)
         }
         composable(Screen.History.route) {
-            HistoryScreen(navController = navController, userViewModel = userViewModel)
+            HistoryScreen(navController = navController)
         }
         composable(Screen.StressAndSleep.route) {
             StressAndSleepScreen(navController = navController, userViewModel = userViewModel)
@@ -110,7 +117,7 @@ fun NavGraph(
             RecipesScreen(navController = navController, userViewModel = userViewModel)
         }
         composable(Screen.Insights.route) {
-            InsightsScreen(navController = navController, userViewModel = userViewModel)
+            NutritionInsightsScreen(navController = navController)
         }
         composable(Screen.Settings.route) {
             SettingsScreen(navController = navController, userViewModel = userViewModel)

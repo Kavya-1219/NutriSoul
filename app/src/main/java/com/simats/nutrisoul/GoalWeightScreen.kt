@@ -116,7 +116,7 @@ fun GoalWeightScreen(navController: NavController, userViewModel: UserViewModel)
                 modifier = Modifier.padding(24.dp),
                 enabled = targetWeight.isNotEmpty(),
                 onClick = {
-                    userViewModel.updateTargetWeight(target?.toDouble() ?: 0.0)
+                    userViewModel.updateTargetWeight(target?.toFloat() ?: 0f)
                     navController.navigate(Screen.HealthConditions.route)
                 }
             )

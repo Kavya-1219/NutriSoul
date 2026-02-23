@@ -37,6 +37,10 @@ import com.simats.nutrisoul.ui.theme.PrimaryGreen
 
 @Composable
 fun FoodPreferencesScreen(navController: NavController, userViewModel: UserViewModel) {
+    var selectedDiet by remember { mutableStateOf<String?>(null) }
+    var selectedAllergies by remember { mutableStateOf(emptySet<String>()) }
+    var foodDislikes by remember { mutableStateOf("") }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -55,14 +59,24 @@ fun FoodPreferencesScreen(navController: NavController, userViewModel: UserViewM
                     .padding(24.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                DietTypeSection()
+                DietTypeSection(selectedDiet) { selectedDiet = it }
                 Spacer(modifier = Modifier.height(24.dp))
-                FoodAllergiesSection()
+                FoodAllergiesSection(selectedAllergies) { selectedAllergies = it }
                 Spacer(modifier = Modifier.height(24.dp))
-                FoodDislikesSection()
+                FoodDislikesSection(foodDislikes) { foodDislikes = it }
                 Spacer(modifier = Modifier.weight(1f))
                 Button(
-                    onClick = { navController.navigate(Screen.LifestyleAndActivity.route) },
+                    onClick = { 
+                        userViewModel.user.value?.let { currentUser ->
+                            val updatedUser = currentUser.copy(
+                                dietaryRestrictions = selectedDiet?.let { listOf(it) } ?: emptyList(),
+                                foodAllergies = selectedAllergies.toList(),
+                                dislikes = foodDislikes.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                            )
+                            userViewModel.updateUser(updatedUser)
+                        }
+                        navController.navigate(Screen.LifestyleAndActivity.route)
+                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(58.dp),
@@ -142,8 +156,7 @@ private fun Header(onBackClicked: () -> Unit) {
 }
 
 @Composable
-private fun DietTypeSection() {
-    var selectedDiet by remember { mutableStateOf<String?>(null) }
+private fun DietTypeSection(selectedDiet: String?, onSelect: (String) -> Unit) {
     val dietTypes = listOf(
         "Vegetarian" to "Plant-based diet",
         "Non-Vegetarian" to "Includes meat & fish",
@@ -159,7 +172,7 @@ private fun DietTypeSection() {
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             dietTypes.subList(0, 2).forEach { (diet, description) ->
-                DietTypeCard(diet, description, diet == selectedDiet) { selectedDiet = diet }
+                DietTypeCard(diet, description, diet == selectedDiet) { onSelect(diet) }
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -168,7 +181,7 @@ private fun DietTypeSection() {
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             dietTypes.subList(2, 4).forEach { (diet, description) ->
-                DietTypeCard(diet, description, diet == selectedDiet) { selectedDiet = diet }
+                DietTypeCard(diet, description, diet == selectedDiet) { onSelect(diet) }
             }
         }
     }
@@ -214,8 +227,7 @@ private fun getDietIcon(diet: String): Int {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-private fun FoodAllergiesSection() {
-    var selectedAllergies by remember { mutableStateOf(emptySet<String>()) }
+private fun FoodAllergiesSection(selectedAllergies: Set<String>, onSelect: (Set<String>) -> Unit) {
     val allergies = listOf("Nuts", "Dairy/Milk", "Gluten", "Eggs", "Soy", "Shellfish", "Fish", "Peanuts")
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -230,11 +242,12 @@ private fun FoodAllergiesSection() {
                 FilterChip(
                     selected = selectedAllergies.contains(allergy),
                     onClick = {
-                        selectedAllergies = if (selectedAllergies.contains(allergy)) {
+                        val newSelection = if (selectedAllergies.contains(allergy)) {
                             selectedAllergies - allergy
                         } else {
                             selectedAllergies + allergy
                         }
+                        onSelect(newSelection)
                     },
                     label = { Text(allergy) },
                     shape = RoundedCornerShape(14.dp),
@@ -245,15 +258,14 @@ private fun FoodAllergiesSection() {
 }
 
 @Composable
-private fun FoodDislikesSection() {
-    var foodDislikes by remember { mutableStateOf("") }
+private fun FoodDislikesSection(foodDislikes: String, onValueChange: (String) -> Unit) {
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text("Food Dislikes (Optional)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(16.dp))
         OutlinedTextField(
             value = foodDislikes,
-            onValueChange = { foodDislikes = it },
+            onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("E.g., Bitter gourd, Mushrooms, Broccoli") },
             shape = RoundedCornerShape(14.dp),

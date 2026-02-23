@@ -16,21 +16,20 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.simats.nutrisoul.data.UserViewModel
-import com.simats.nutrisoul.data.UserViewModelFactory
 import com.simats.nutrisoul.ui.theme.NutriSoulTheme
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity(), SensorEventListener {
 
     private lateinit var sensorManager: SensorManager
     private var stepCounterSensor: Sensor? = null
     private var initialSteps: Int = -1
 
-    private val userViewModel: UserViewModel by viewModels {
-        UserViewModelFactory((application as MyApplication).repository, applicationContext)
-    }
+    private val userViewModel: UserViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,7 +37,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
 
-        val repository = (application as MyApplication).repository
         setContent {
             NutriSoulTheme {
                 Surface(
@@ -46,7 +44,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    NavGraph(navController = navController, repository = repository)
+                    NavGraph(navController = navController)
                 }
             }
         }
@@ -85,6 +83,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         if (stepCounterSensor != null) {
             sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL)
         }
+
     }
 
     private fun unregisterStepSensor() {
