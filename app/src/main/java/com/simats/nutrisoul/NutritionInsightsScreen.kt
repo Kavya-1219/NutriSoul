@@ -17,8 +17,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.TrackChanges
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -63,6 +64,7 @@ fun NutritionInsightsScreen(navController: NavController) {
                 )
             )
         },
+        bottomBar = { BottomNavigationBar(navController = navController) },
         content = {
             Column(
                 modifier = Modifier
@@ -122,7 +124,7 @@ private fun WeeklyConsistencyCard() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("Weekly Consistency", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-                Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFFFFC107))
+                Icon(Icons.Filled.WorkspacePremium, contentDescription = null, tint = Color(0xFFFFC107))
             }
             Spacer(Modifier.height(20.dp))
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
@@ -156,7 +158,7 @@ private fun AverageDailyIntakeCard() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("Average Daily Intake", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-                Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF6A1B9A))
+                Icon(Icons.Filled.DateRange, contentDescription = null, tint = Color(0xFF6A1B9A))
             }
             Spacer(Modifier.height(20.dp))
             Card(
@@ -168,7 +170,6 @@ private fun AverageDailyIntakeCard() {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Calories", fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.weight(1f))
-                        Icon(Icons.Default.Info, contentDescription = null, tint = Color.Gray)
                         Text("Under Target", color = Color.Gray)
                     }
                     Spacer(Modifier.height(8.dp))
@@ -237,7 +238,7 @@ private fun InsightsCard() {
                         .background(MaterialTheme.colorScheme.primary),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Info, contentDescription = null, tint = Color.White)
+                    Icon(Icons.Filled.TrackChanges, contentDescription = null, tint = Color.White)
                 }
                 Spacer(Modifier.padding(start = 16.dp, end = 16.dp))
                 Text("Insights", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)

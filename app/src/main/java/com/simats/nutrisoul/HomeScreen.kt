@@ -492,25 +492,3 @@ fun DailyTipCard() {
         }
     }
 }
-
-@Composable
-fun BottomNavigationBar(navController: NavController) {
-    val items = listOf(
-        Screen.Home,
-        Screen.StressAndSleep,
-        Screen.Recipes,
-        Screen.Insights,
-        Screen.Settings
-    )
-    NavigationBar {
-        val currentRoute = navController.currentBackStackEntry?.destination?.route
-        items.forEach { screen ->
-            NavigationBarItem(
-                icon = { Icon(screen.icon, contentDescription = screen.title) },
-                label = { Text(screen.title) },
-                selected = currentRoute == screen.route,
-                onClick = { navController.navigate(screen.route) }
-            )
-        }
-    }
-}
