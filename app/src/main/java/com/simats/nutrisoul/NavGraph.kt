@@ -17,6 +17,7 @@ fun NavGraph(
     val mealPlanViewModel: MealPlanViewModel = hiltViewModel()
     val historyViewModel: HistoryViewModel = hiltViewModel()
     val nutritionInsightsViewModel: NutritionInsightsViewModel = hiltViewModel()
+    val stressAndSleepViewModel: StressAndSleepViewModel = hiltViewModel()
 
     NavHost(navController = navController, startDestination = Screen.Splash.route) {
         composable(Screen.Splash.route) {
@@ -108,16 +109,16 @@ fun NavGraph(
             AiTipsScreen(navController = navController, userViewModel = userViewModel)
         }
         composable(Screen.History.route) {
-            HistoryScreen(navController = navController)
+            HistoryScreen(navController = navController, viewModel = historyViewModel)
         }
         composable(Screen.StressAndSleep.route) {
-            StressAndSleepScreen(navController = navController, userViewModel = userViewModel)
+            StressAndSleepScreen(navController = navController, viewModel = stressAndSleepViewModel)
         }
         composable(Screen.Recipes.route) {
             RecipesScreen(navController = navController, userViewModel = userViewModel)
         }
         composable(Screen.Insights.route) {
-            NutritionInsightsScreen(navController = navController)
+            NutritionInsightsScreen(navController = navController, viewModel = nutritionInsightsViewModel)
         }
         composable(Screen.Settings.route) {
             SettingsScreen(navController = navController, userViewModel = userViewModel)
