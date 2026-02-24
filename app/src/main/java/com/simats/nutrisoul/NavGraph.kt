@@ -1,5 +1,6 @@
 package com.simats.nutrisoul
 
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -122,6 +123,15 @@ fun NavGraph(
         }
         composable(Screen.Settings.route) {
             SettingsScreen(navController = navController, userViewModel = userViewModel)
+        }
+        composable("profile") {
+            ProfileScreen(navController = navController, userViewModel = userViewModel)
+        }
+        composable("help") {
+            HelpSupportScreen(navController = navController)
+        }
+        composable("about") {
+            Text("About Screen - Not Implemented")
         }
     }
 }

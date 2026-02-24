@@ -1,5 +1,6 @@
 package com.simats.nutrisoul.data
 
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.google.firebase.Timestamp
@@ -25,6 +26,12 @@ class UserViewModel @Inject constructor(private val repository: UserRepository) 
     private val _automaticTracking = MutableStateFlow(false)
     val automaticTracking = _automaticTracking.asStateFlow()
 
+    private val _darkMode = MutableStateFlow(false)
+    val darkMode = _darkMode.asStateFlow()
+
+    private val _profilePictureUri = MutableStateFlow<Uri?>(null)
+    val profilePictureUri = _profilePictureUri.asStateFlow()
+
     private val auth = FirebaseAuth.getInstance()
     private val db = Firebase.firestore
 
@@ -49,6 +56,11 @@ class UserViewModel @Inject constructor(private val repository: UserRepository) 
                     try {
                         val user = mapDocumentToUser(document)
                         _user.value = user
+                        _darkMode.value = document.getBoolean("darkMode") ?: false
+                        val profilePicUriString = document.getString("profilePictureUri")
+                        if (profilePicUriString != null) {
+                            _profilePictureUri.value = Uri.parse(profilePicUriString)
+                        }
                         _isLoading.value = false
 
                         // After successfully loading, check if a migration is needed and perform it.
@@ -191,5 +203,25 @@ class UserViewModel @Inject constructor(private val repository: UserRepository) 
 
     fun calculateTargetCalories() {
         // Placeholder for calorie calculation logic
+    }
+
+    fun setDarkMode(enabled: Boolean) {
+        val uid = auth.currentUser?.uid
+        if (uid != null) {
+            _darkMode.value = enabled
+            db.collection("users").document(uid).update("darkMode", enabled)
+        }
+    }
+
+    fun setProfilePictureUri(uri: Uri) {
+        val uid = auth.currentUser?.uid
+        if (uid != null) {
+            _profilePictureUri.value = uri
+            db.collection("users").document(uid).update("profilePictureUri", uri.toString())
+        }
+    }
+
+    fun logout() {
+        auth.signOut()
     }
 }

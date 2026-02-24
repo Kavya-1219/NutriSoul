@@ -73,6 +73,11 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("androidx.compose.runtime:runtime-livedata:1.6.7")
+    implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("com.github.SmartToolFactory:Compose-Colorful-Sliders:1.0.0")
+    implementation("com.vanniktech:android-image-cropper:4.5.0")
+
 
     // Hilt
     implementation("com.google.dagger:hilt-android:2.48")

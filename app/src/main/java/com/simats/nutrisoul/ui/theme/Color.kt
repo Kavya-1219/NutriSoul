@@ -13,3 +13,8 @@ val PrimaryGreen = Color(0xFF4CAF50)
 val LightGreenBackground = Color(0xFFE8F5E9)
 val TitleColor = Color(0xFF1C1C1E)
 val SubTextColor = Color(0xFF6E6E73)
+
+val Gray900 = Color(0xFF212121)
+val Gray50 = Color(0xFFFAFAFA)
+val Green600 = Color(0xFF43A047)
+val Green400 = Color(0xFF66BB6A)

@@ -1,5 +1,6 @@
 package com.simats.nutrisoul
 
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.* 
@@ -19,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.simats.nutrisoul.data.User
 import com.simats.nutrisoul.data.UserViewModel
 import com.simats.nutrisoul.ui.DailyTotalsUi
@@ -40,6 +43,7 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel, homeV
     val user by userViewModel.user.collectAsStateWithLifecycle()
     val isLoading by userViewModel.isLoading.collectAsStateWithLifecycle()
     val totals by homeViewModel.todayTotals.collectAsState()
+    val profilePictureUri by userViewModel.profilePictureUri.collectAsStateWithLifecycle()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -76,13 +80,15 @@ fun HomeContent(navController: NavController, user: User, totals: DailyTotalsUi,
         "Gain Muscle" -> user.bmr + 500
         else -> user.bmr
     }
+    val profilePictureUri by userViewModel.profilePictureUri.collectAsStateWithLifecycle()
+
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        Header(user.name)
+        Header(user.name, profilePictureUri)
         Spacer(modifier = Modifier.height(24.dp))
         Column(
             modifier = Modifier.padding(horizontal = 16.dp),
@@ -99,7 +105,7 @@ fun HomeContent(navController: NavController, user: User, totals: DailyTotalsUi,
 }
 
 @Composable
-fun Header(name: String) {
+fun Header(name: String, profilePictureUri: Uri?) {
     val timeOfDay = when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
         in 0..11 -> "Good Morning"
         in 12..16 -> "Good Afternoon"
@@ -148,7 +154,16 @@ fun Header(name: String) {
                     .background(Color.White.copy(alpha = 0.25f)),
                 contentAlignment = Alignment.Center
             ) {
-                Text("👋", fontSize = 24.sp)
+                if (profilePictureUri != null) {
+                    AsyncImage(
+                        model = profilePictureUri,
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Text("👋", fontSize = 24.sp)
+                }
             }
         }
     }
@@ -358,8 +373,8 @@ fun TodayActivityCard(navController: NavController, user: User) {
                 icon = Icons.AutoMirrored.Filled.DirectionsWalk,
                 label = "steps",
                 value = user.todaysSteps.toString(),
-                background = Color(0xFFE8F5E9),
-                iconColor = Color(0xFF66BB6A),
+                background = Color(0xFFF3E5F5),
+                iconColor = Color(0xFFBA68C8),
                 onClick = { navController.navigate(Screen.StepsTracking.route) }
             )
         }
@@ -367,8 +382,8 @@ fun TodayActivityCard(navController: NavController, user: User) {
 }
 
 @Composable
-fun RowScope.ActivityItem(
-    modifier: Modifier,
+fun ActivityItem(
+    modifier: Modifier = Modifier,
     icon: ImageVector,
     label: String,
     value: String,
@@ -376,30 +391,41 @@ fun RowScope.ActivityItem(
     iconColor: Color,
     onClick: () -> Unit
 ) {
-
     Card(
         modifier = modifier.clickable(onClick = onClick),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = background),
-        elevation = CardDefaults.cardElevation(4.dp)
+        elevation = CardDefaults.cardElevation(0.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(32.dp))
-            Spacer(Modifier.height(8.dp))
-            Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        Row(Modifier.padding(16.dp)) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(32.dp)
+            )
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = value,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = label,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 13.sp
+                )
+            }
         }
     }
 }
 
+
 @Composable
 fun QuickActionsCard(navController: NavController) {
-
     Column {
-
         Text(
             "Quick Actions",
             fontWeight = FontWeight.SemiBold,
@@ -407,86 +433,77 @@ fun QuickActionsCard(navController: NavController) {
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            QuickActionItem("Log Food", Icons.Default.Add, Color(0xFF66BB6A)) { navController.navigate(Screen.LogFood.route) }
-            QuickActionItem("Meal Plan", Icons.Default.Restaurant, Color(0xFF42A5F5)) { navController.navigate(Screen.MealPlan.route) }
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            QuickActionItem("AI Tips", Icons.Default.Psychology, Color(0xFFAB47BC)) { navController.navigate(Screen.AiTips.route) }
-            QuickActionItem("History", Icons.Default.History, Color(0xFFFF7043)) { navController.navigate(Screen.History.route) }
+            QuickActionItem(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Default.Add,
+                label = "Log Food",
+                onClick = { navController.navigate(Screen.LogFood.route) }
+            )
+            QuickActionItem(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Default.RestaurantMenu,
+                label = "Meal Plan",
+                onClick = { navController.navigate(Screen.MealPlan.route) }
+            )
         }
     }
 }
 
 @Composable
-fun RowScope.QuickActionItem(
-    title: String,
+fun QuickActionItem(
+    modifier: Modifier = Modifier,
     icon: ImageVector,
-    color: Color,
+    label: String,
     onClick: () -> Unit
 ) {
-
     Card(
-        modifier = Modifier
-            .weight(1f)
-            .clickable(onClick = onClick),
+        modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(32.dp))
-            Spacer(Modifier.height(12.dp))
-            Text(title, fontWeight = FontWeight.SemiBold)
+            Icon(icon, contentDescription = null, tint = PrimaryGreen)
+            Spacer(Modifier.height(8.dp))
+            Text(label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
 
 @Composable
 fun DailyTipCard() {
-
     Card(
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5)),
-        elevation = CardDefaults.cardElevation(6.dp),
+        elevation = CardDefaults.cardElevation(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFDE7)),
         modifier = Modifier.fillMaxWidth()
     ) {
-
-        Row(
-            modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFAB47BC).copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.TrackChanges, contentDescription = null, tint = Color(0xFFAB47BC))
-            }
-
+        Row(Modifier.padding(20.dp)) {
+            Icon(
+                Icons.Default.Lightbulb,
+                contentDescription = null,
+                tint = Color(0xFFFFCA28),
+                modifier = Modifier.size(32.dp)
+            )
             Spacer(Modifier.width(16.dp))
-
             Column {
                 Text(
                     "Daily Tip",
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFFAB47BC)
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
+                Spacer(Modifier.height(4.dp))
                 Text(
-                    "You\'re doing great! Make sure to eat enough to meet your daily goals.",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    "Start your day with a glass of warm water to boost your metabolism.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 14.sp
                 )
             }
         }

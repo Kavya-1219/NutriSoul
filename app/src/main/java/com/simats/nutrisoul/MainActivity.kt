@@ -12,7 +12,9 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.simats.nutrisoul.data.UserViewModel
@@ -38,7 +40,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
 
         setContent {
-            NutriSoulTheme {
+            val darkMode by userViewModel.darkMode.collectAsStateWithLifecycle()
+            NutriSoulTheme(darkTheme = darkMode) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
