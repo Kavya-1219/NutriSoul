@@ -1,9 +1,12 @@
 package com.simats.nutrisoul
 
+import android.Manifest
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -33,6 +36,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -476,6 +480,11 @@ fun scheduleBedtimeReminder(context: Context, bedtime: LocalTime) {
     val intent = Intent(context, BedtimeReminderReceiver::class.java)
     val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+        // Handle case where permission is not granted
+        return
+    }
+
     val calendar = Calendar.getInstance().apply {
         timeInMillis = System.currentTimeMillis()
         set(Calendar.HOUR_OF_DAY, bedtime.hour)
@@ -486,10 +495,9 @@ fun scheduleBedtimeReminder(context: Context, bedtime: LocalTime) {
         }
     }
 
-    alarmManager.setInexactRepeating(
+    alarmManager.setExactAndAllowWhileIdle(
         AlarmManager.RTC_WAKEUP,
         calendar.timeInMillis,
-        AlarmManager.INTERVAL_DAY,
         pendingIntent
     )
 }
