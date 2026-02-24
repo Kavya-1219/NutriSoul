@@ -112,7 +112,7 @@ fun NavGraph(
         composable(Screen.History.route) {
             HistoryScreen(navController = navController, viewModel = historyViewModel)
         }
-        composable(Screen.StressAndSleep.route) {
+        composable(Screen.MindCare.route) {
             StressAndSleepScreen(navController = navController, viewModel = stressAndSleepViewModel)
         }
         composable(Screen.Recipes.route) {
@@ -131,7 +131,7 @@ fun NavGraph(
             HelpSupportScreen(navController = navController)
         }
         composable("about") {
-            Text("About Screen - Not Implemented")
+            AboutScreen(navController = navController)
         }
     }
 }

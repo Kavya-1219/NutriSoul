@@ -21,10 +21,12 @@ import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -43,6 +45,10 @@ private val faqs = listOf(
     "How do I track water intake?" to "Use the water tracking widget on the home screen. Tap the + button each time you drink a glass of water (250ml). Your daily goal is calculated based on your body weight.",
     "What if I have food allergies?" to "Your food allergies are already saved from your profile setup. The meal plan automatically excludes all your allergic foods. You can update allergies anytime in Profile Settings.",
     "How do I change my goal?" to "Go to Profile Settings and edit your goal. The app will recalculate your daily calorie target and adjust meal recommendations accordingly.",
+    "Can I use the app offline?" to "Yes! All your data is stored locally on your device. You can log meals and view your history offline. However, AI chat and food image scanning require internet connection.",
+    "How do I track my progress?" to "Check the 'Insights' screen for weekly statistics, macro distribution, and consistency tracking. The Home screen shows your daily progress and weight goals.",
+    "Is my data secure?" to "Yes! All your data is stored locally on your device and is not shared with third parties. We do not collect or sell your personal information.",
+    "How do I reset my password?" to "Go to Profile Settings, then scroll down to 'Change Password'. You'll need to enter your current password to set a new one."
 )
 
 private data class Message(val text: String, val isUser: Boolean, val timestamp: String)
@@ -54,11 +60,12 @@ fun HelpSupportScreen(navController: NavController) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(modifier = Modifier.fillMaxSize()) {
             Header(navController)
-            TabSwitcher(activeTab) { activeTab = it }
-
-            when (activeTab) {
-                "faqs" -> FaqsTab { activeTab = "chat" }
-                "chat" -> ChatTab()
+            Column(Modifier.offset(y = (-64).dp)) {
+                TabSwitcher(activeTab) { activeTab = it }
+                when (activeTab) {
+                    "faqs" -> FaqsTab { activeTab = "chat" }
+                    "chat" -> ChatTab()
+                }
             }
         }
     }
@@ -74,7 +81,7 @@ private fun Header(navController: NavController) {
                     colors = listOf(Color(0xFFFFA726), Color(0xFFF4511E))
                 )
             )
-            .padding(16.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 80.dp)
     ) {
         Column {
             IconButton(onClick = { navController.popBackStack() }) {
@@ -96,33 +103,48 @@ private fun TabSwitcher(activeTab: String, onTabSelected: (String) -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        shape = RoundedCornerShape(16.dp),
+            .padding(horizontal = 24.dp),
+        shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.cardElevation(8.dp)
     ) {
         Row(modifier = Modifier.padding(4.dp)) {
-            Button(
-                onClick = { onTabSelected("faqs") },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (activeTab == "faqs") MaterialTheme.colorScheme.primary else Color.Transparent,
-                    contentColor = if (activeTab == "faqs") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                ),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("FAQs")
+            val faqsGradient = Brush.verticalGradient(colors = listOf(Color(0xFFFFA726), Color(0xFFF4511E)))
+            val chatGradient = Brush.verticalGradient(colors = listOf(Color(0xFFFFA726), Color(0xFFF4511E)))
+
+            val faqsModifier = if (activeTab == "faqs") {
+                Modifier.background(faqsGradient)
+            } else {
+                Modifier.background(Color.Transparent)
             }
-            Button(
-                onClick = { onTabSelected("chat") },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (activeTab == "chat") MaterialTheme.colorScheme.primary else Color.Transparent,
-                    contentColor = if (activeTab == "chat") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                ),
-                modifier = Modifier.weight(1f)
+
+            val chatModifier = if (activeTab == "chat") {
+                Modifier.background(chatGradient)
+            } else {
+                Modifier.background(Color.Transparent)
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(20.dp))
+                    .then(faqsModifier)
+                    .clickable { onTabSelected("faqs") },
+                contentAlignment = Alignment.Center
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Chat", modifier = Modifier.size(20.dp))
+                Text("FAQs", color = if (activeTab == "faqs") Color.White else MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(12.dp))
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(20.dp))
+                    .then(chatModifier)
+                    .clickable { onTabSelected("chat") },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(12.dp)) {
+                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Chat", modifier = Modifier.size(20.dp), tint = if (activeTab == "chat") Color.White else MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("AI Chat")
+                    Text("AI Chat", color = if (activeTab == "chat") Color.White else MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
@@ -171,22 +193,32 @@ fun FaqsTab(onChatClick: () -> Unit) {
                     .fillMaxWidth()
                     .padding(top = 16.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD))
             ) {
                 Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "Still need help?",
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0D47A1)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Can't find what you're looking for? Try our AI chat or contact support.",
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF1565C0)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = onChatClick) {
-                        Text("Chat with AI")
+                    Button(
+                        onClick = onChatClick, colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF1976D2)
+                        )
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Chat", modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Chat with AI")
+                        }
                     }
                 }
             }
@@ -215,69 +247,41 @@ fun ChatTab() {
             modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            item { Spacer(modifier = Modifier.height(16.dp)) }
             items(chatMessages) { message ->
-                MessageBubble(message)
+                ChatMessage(message)
             }
+            item { Spacer(modifier = Modifier.height(16.dp)) }
         }
+        ChatInput(
+            input = inputMessage,
+            onInputChange = { inputMessage = it },
+            onSend = {
+                if (inputMessage.isNotBlank()) {
+                    val userMessage = Message(inputMessage, true, SimpleDateFormat("hh:mm a", Locale.US).format(Date()))
+                    chatMessages.add(userMessage)
+                    inputMessage = ""
+                    keyboardController?.hide()
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = inputMessage,
-                onValueChange = { inputMessage = it },
-                placeholder = { Text("Ask me anything...") },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(24.dp),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                keyboardActions = KeyboardActions {
-                    if (inputMessage.isNotBlank()) {
-                        chatMessages.add(Message(inputMessage, true, SimpleDateFormat("hh:mm a", Locale.US).format(Date())))
-                        inputMessage = ""
-                        keyboardController?.hide()
-                    }
+                    // Simulate AI response
+                    val aiResponse = getAiResponse(userMessage.text)
+                    chatMessages.add(Message(aiResponse, false, SimpleDateFormat("hh:mm a", Locale.US).format(Date())))
                 }
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(
-                onClick = {
-                    if (inputMessage.isNotBlank()) {
-                        chatMessages.add(Message(inputMessage, true, SimpleDateFormat("hh:mm a", Locale.US).format(Date())))
-                        inputMessage = ""
-                        keyboardController?.hide()
-                    }
-                },
-                shape = CircleShape,
-                modifier = Modifier.size(48.dp),
-                contentPadding = PaddingValues(0.dp)
-            ) {
-                Icon(Icons.Default.Send, contentDescription = "Send")
             }
-        }
-    }
-
-    LaunchedEffect(chatMessages.size) {
-        if (chatMessages.last().isUser) {
-            delay(1000)
-            val response = generateAIResponse(chatMessages.last().text)
-            chatMessages.add(Message(response, false, SimpleDateFormat("hh:mm a", Locale.US).format(Date())))
-        }
+        )
     }
 }
 
 @Composable
-private fun MessageBubble(message: Message) {
+private fun ChatMessage(message: Message) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
     ) {
         Card(
+            modifier = Modifier.widthIn(max = 300.dp),
             shape = RoundedCornerShape(
                 topStart = if (message.isUser) 16.dp else 0.dp,
                 topEnd = if (message.isUser) 0.dp else 16.dp,
@@ -285,33 +289,75 @@ private fun MessageBubble(message: Message) {
                 bottomEnd = 16.dp
             ),
             colors = CardDefaults.cardColors(
-                containerColor = if (message.isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+                containerColor = if (message.isUser) Color(0xFF1976D2) else Color(0xFFF1F1F1)
             )
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(
                     text = message.text,
-                    color = if (message.isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (message.isUser) Color.White else Color.Black
                 )
                 Text(
                     text = message.timestamp,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = (if (message.isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.7f),
-                    modifier = Modifier.align(Alignment.End).padding(top = 4.dp)
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (message.isUser) Color.White.copy(alpha = 0.7f) else Color.Gray,
+                    modifier = Modifier.align(Alignment.End)
                 )
             }
         }
     }
 }
 
-private fun generateAIResponse(userInput: String): String {
-    val input = userInput.lowercase()
+@Composable
+private fun ChatInput(
+    input: String,
+    onInputChange: (String) -> Unit,
+    onSend: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = input,
+                onValueChange = onInputChange,
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("Type a message...") },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                keyboardActions = KeyboardActions(onSend = { onSend() })
+            )
+            IconButton(
+                onClick = onSend,
+                enabled = input.isNotBlank(),
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(if (input.isNotBlank()) Color(0xFF1976D2) else Color.Gray)
+            ) {
+                Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.White)
+            }
+        }
+    }
+}
+
+private fun getAiResponse(message: String): String {
     return when {
-        "hello" in input || "hi" in input -> "Hello there! How can I assist you with your nutrition goals today?"
-        "calorie" in input -> "Based on general guidelines, a moderately active adult needs about 2000-2500 calories. For a personalized calculation, please provide your age, gender, weight, height, and activity level in your profile."
-        "lose weight" in input -> "To lose weight, you should aim for a consistent calorie deficit, focus on high-protein meals, and incorporate regular exercise. Strength training is highly effective!"
-        "meal" in input || "food" in input -> "For a healthy meal, I'd suggest something balanced. For example, a grilled chicken salad for lunch, or quinoa with roasted vegetables for dinner. Do you have any dietary preferences?"
-        "protein" in input -> "A good target for protein intake is around 1.6-2.2 grams per kilogram of body weight, especially if you are active. Good sources include chicken, fish, eggs, tofu, and lentils."
-        else -> "I can help with questions about nutrition, calories, meal planning, and exercise. What's on your mind?"
+        message.contains("hello", ignoreCase = true) || message.contains("hi", ignoreCase = true) -> "Hello there! How can I assist you with your nutrition today?"
+        message.contains("log", ignoreCase = true) -> "You can log meals by going to the 'Log Food' screen. From there you can search, manually enter, or scan food items."
+        message.contains("meal plan", ignoreCase = true) -> "You can view and edit your meal plan on the 'Meal Plan' screen. You can also generate a new plan there."
+        message.contains("water", ignoreCase = true) -> "Track your water intake on the home screen using the water widget. Each tap adds one glass (250ml)."
+        else -> "I'm sorry, I can't answer that yet. I'm still learning! Try asking about logging food, meal plans, or water intake."
     }
 }

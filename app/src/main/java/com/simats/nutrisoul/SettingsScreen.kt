@@ -225,17 +225,6 @@ private fun SettingsOptions(
                 ) {
                     Switch(checked = darkMode, onCheckedChange = onDarkModeChange)
                 }
-                Divider()
-                SettingItem(
-                    icon = Icons.Default.Language,
-                    title = "Language",
-                    subtitle = "English"
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                        contentDescription = "Arrow"
-                    )
-                }
             }
         }
 

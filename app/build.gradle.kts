@@ -19,9 +19,9 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "EDAMAM_APP_ID", project.properties["EDAMAM_APP_ID"].toString())
-        buildConfigField("String", "EDAMAM_APP_KEY", project.properties["EDAMAM_APP_KEY"].toString())
-        buildConfigField("String", "USDA_API_KEY", project.properties["USDA_API_KEY"].toString())
+        buildConfigField("String", "EDAMAM_APP_ID", "\"${project.properties["EDAMAM_APP_ID"]}\"")
+        buildConfigField("String", "EDAMAM_APP_KEY", "\"${project.properties["EDAMAM_APP_KEY"]}\"")
+        buildConfigField("String", "USDA_API_KEY", "\"${project.properties["USDA_API_KEY"]}\"")
     }
 
     buildTypes {

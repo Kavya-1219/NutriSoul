@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -26,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -45,7 +47,6 @@ fun StressAndSleepScreen(
     viewModel: StressAndSleepViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
 
     Scaffold(
         bottomBar = { BottomNavigationBar(navController = navController) }
@@ -57,8 +58,8 @@ fun StressAndSleepScreen(
                 .background(Color(0xFFF0F2F5))
                 .verticalScroll(rememberScrollState())
         ) {
-            StressAndSleepHeader(navController)
-            StressAndSleepBody(uiState = uiState, viewModel = viewModel)
+            MindCareHeader(navController)
+            MindCareBody(uiState = uiState, viewModel = viewModel)
         }
     }
 
@@ -72,7 +73,7 @@ fun StressAndSleepScreen(
 }
 
 @Composable
-fun StressAndSleepHeader(navController: NavController) {
+fun MindCareHeader(navController: NavController) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -97,7 +98,7 @@ fun StressAndSleepHeader(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                "Stress & Sleep Support",
+                "Mind Care",
                 color = Color.White,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold
@@ -114,7 +115,7 @@ fun StressAndSleepHeader(navController: NavController) {
 }
 
 @Composable
-fun StressAndSleepBody(
+fun MindCareBody(
     uiState: StressAndSleepUiState,
     viewModel: StressAndSleepViewModel
 ) {
@@ -130,7 +131,7 @@ fun StressAndSleepBody(
     ) {
         WhyStressMattersCard()
         SleepTrackingSection(uiState = uiState, onEditClick = viewModel::onEditScheduleClicked, onLogClick = viewModel::onLogTodaySleepClicked)
-        BedtimeReminderCard(reminderEnabled = uiState.reminderEnabled, onToggle = viewModel::onReminderToggled)
+        BedtimeReminderCard(reminderEnabled = uiState.reminderEnabled, onToggle = viewModel::onReminderToggled, sleepSchedule = uiState.sleepSchedule)
         RecentSleepHistoryCard(sleepLogs = uiState.sleepLogs)
         FoodsToReduceStressSection()
         NutritionTipsForSleepSection()
@@ -170,9 +171,9 @@ fun SleepTrackingSection(uiState: StressAndSleepUiState, onEditClick: () -> Unit
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("Last Night's Sleep", color = Color.Gray)
                 if (todaySleepLog != null) {
-                    Text(todaySleepLog.duration, fontSize = 48.sp, fontWeight = FontWeight.Bold, color = Color(0xFF333333))
+                    Text(todaySleepLog.duration, fontSize = 48.sp, fontWeight = FontWeight.Bold)
                 } else {
-                    Text("--", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = Color(0xFF333333))
+                    Text("--", fontSize = 48.sp, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -230,7 +231,7 @@ fun SleepTrackingSection(uiState: StressAndSleepUiState, onEditClick: () -> Unit
 }
 
 @Composable
-fun BedtimeReminderCard(reminderEnabled: Boolean, onToggle: (Boolean) -> Unit) {
+fun BedtimeReminderCard(reminderEnabled: Boolean, onToggle: (Boolean) -> Unit, sleepSchedule: SleepSchedule) {
     val context = LocalContext.current
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -257,7 +258,7 @@ fun BedtimeReminderCard(reminderEnabled: Boolean, onToggle: (Boolean) -> Unit) {
                 onCheckedChange = {
                     onToggle(it)
                     if (it) {
-                        scheduleBedtimeReminder(context)
+                        scheduleBedtimeReminder(context, sleepSchedule.bedtime)
                     } else {
                         cancelBedtimeReminder(context)
                     }
@@ -412,7 +413,6 @@ fun EditSleepScheduleDialog(schedule: SleepSchedule, onDismiss: () -> Unit, onSa
                 Text("Edit Sleep Schedule", fontWeight = FontWeight.Bold, fontSize = 20.sp)
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Simplified Time Pickers
                 TimePicker(label = "Bedtime", time = bedtime, onTimeChange = { bedtime = it })
                 Spacer(modifier = Modifier.height(16.dp))
                 TimePicker(label = "Wake-up Time", time = wakeTime, onTimeChange = { wakeTime = it })
@@ -432,49 +432,58 @@ fun EditSleepScheduleDialog(schedule: SleepSchedule, onDismiss: () -> Unit, onSa
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimePicker(label: String, time: LocalTime, onTimeChange: (LocalTime) -> Unit) {
+    var hourString by remember(time) { mutableStateOf(time.hour.toString()) }
+    var minuteString by remember(time) { mutableStateOf(time.minute.toString().padStart(2, '0')) }
+
     Column {
         Text(label, fontWeight = FontWeight.Medium)
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
-                value = time.hour.toString(),
-                onValueChange = { hourString ->
-                    val hour = hourString.toIntOrNull()
+                value = hourString,
+                onValueChange = {
+                    hourString = it
+                    val hour = it.toIntOrNull()
                     if (hour != null && hour in 0..23) {
                         onTimeChange(time.withHour(hour))
                     }
                 },
                 modifier = Modifier.weight(1f),
-                label = { Text("Hour") }
+                label = { Text("Hour") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
             Spacer(modifier = Modifier.width(8.dp))
             OutlinedTextField(
-                value = time.minute.toString(),
-                onValueChange = { minuteString ->
-                    val minute = minuteString.toIntOrNull()
+                value = minuteString,
+                onValueChange = {
+                    minuteString = it
+                    val minute = it.toIntOrNull()
                     if (minute != null && minute in 0..59) {
                         onTimeChange(time.withMinute(minute))
                     }
                 },
                 modifier = Modifier.weight(1f),
-                label = { Text("Minute") }
+                label = { Text("Minute") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
         }
     }
 }
 
-fun scheduleBedtimeReminder(context: Context) {
+fun scheduleBedtimeReminder(context: Context, bedtime: LocalTime) {
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     val intent = Intent(context, BedtimeReminderReceiver::class.java)
-    val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+    val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
     val calendar = Calendar.getInstance().apply {
         timeInMillis = System.currentTimeMillis()
-        set(Calendar.HOUR_OF_DAY, 22) // 10 PM
-        set(Calendar.MINUTE, 0)
+        set(Calendar.HOUR_OF_DAY, bedtime.hour)
+        set(Calendar.MINUTE, bedtime.minute)
         set(Calendar.SECOND, 0)
+        if (before(Calendar.getInstance())) { // if time has already passed today, schedule for tomorrow
+            add(Calendar.DATE, 1)
+        }
     }
 
     alarmManager.setInexactRepeating(
@@ -488,7 +497,7 @@ fun scheduleBedtimeReminder(context: Context) {
 fun cancelBedtimeReminder(context: Context) {
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     val intent = Intent(context, BedtimeReminderReceiver::class.java)
-    val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+    val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
     alarmManager.cancel(pendingIntent)
 }
 
@@ -690,7 +699,7 @@ fun WhyThisMattersInfoCard() {
             Text("Why this matters:", fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "Sleep timing and quality affect hunger hormones, digestion, and food choices. Managing stress and sleep through nutrition and simple calm tools supports your overall health goals.",
+                "Sleep timing and quality affect hunger hormones, digestion, and food choices. Managing stress and sleep through nutrition and and simple calm tools supports your overall health goals.",
                 fontSize = 14.sp,
                 color = Color(0xFF2E7D32),
                 lineHeight = 20.sp
@@ -704,12 +713,12 @@ fun SectionHeader(icon: ImageVector, title: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(imageVector = icon, contentDescription = title, tint = Color.Gray)
         Spacer(modifier = Modifier.width(8.dp))
-        Text(title, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color(0xFF333333))
+        Text(title, fontWeight = FontWeight.Bold, fontSize = 20.sp)
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun StressAndSleepScreenPreview() {
+fun MindCareScreenPreview() {
     StressAndSleepScreen(rememberNavController())
 }

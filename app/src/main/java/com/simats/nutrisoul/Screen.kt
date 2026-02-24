@@ -37,7 +37,7 @@ sealed class Screen(val route: String, val title: String, val icon: @Composable 
     object Goals : Screen("goals", "Goals", { ImageIcons.Home })
     object MealPlan : Screen("meal_plan", "Meal Plan", { ImageIcons.Home })
     object History : Screen("history", "History", { ImageIcons.Home })
-    object StressAndSleep : Screen("stress_and_sleep", "Stress & Sleep", { ImageIcons.StressAndSleep })
+    object MindCare : Screen("mind_care", "Mind Care", { ImageIcons.MindCare })
     object Recipes : Screen("recipes", "Recipes", { ImageIcons.Recipes })
     object Insights : Screen("insights", "Insights", { ImageIcons.Insights })
     object Settings : Screen("settings", "Settings", { ImageIcons.Settings })
