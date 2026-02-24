@@ -115,7 +115,7 @@ fun NavGraph(
             StressAndSleepScreen(navController = navController, viewModel = stressAndSleepViewModel)
         }
         composable(Screen.Recipes.route) {
-            RecipesScreen(navController = navController, userViewModel = userViewModel)
+            RecipesScreen(navController = navController)
         }
         composable(Screen.Insights.route) {
             NutritionInsightsScreen(navController = navController, viewModel = nutritionInsightsViewModel)
