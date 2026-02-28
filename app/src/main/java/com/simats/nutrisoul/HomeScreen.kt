@@ -43,7 +43,7 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel, homeV
     val user by userViewModel.user.collectAsStateWithLifecycle()
     val isLoading by userViewModel.isLoading.collectAsStateWithLifecycle()
     val totals by homeViewModel.todayTotals.collectAsState()
-    val profilePictureUri by userViewModel.profilePictureUri.collectAsStateWithLifecycle()
+    val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -59,7 +59,7 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel, homeV
             if (isLoading) {
                 CircularProgressIndicator(color = PrimaryGreen)
             } else if (user != null) {
-                HomeContent(navController, user!!, totals, userViewModel)
+                HomeContent(navController, user!!, totals, homeUiState, userViewModel)
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Error loading user data.")
@@ -74,14 +74,19 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel, homeV
 }
 
 @Composable
-fun HomeContent(navController: NavController, user: User, totals: DailyTotalsUi, userViewModel: UserViewModel) {
+fun HomeContent(
+    navController: NavController,
+    user: User,
+    totals: DailyTotalsUi,
+    homeUiState: HomeUiState,
+    userViewModel: UserViewModel
+) {
     val targetCalories = when (user.goal) {
         "Weight Loss" -> user.bmr - 500
         "Gain Muscle" -> user.bmr + 500
         else -> user.bmr
     }
     val profilePictureUri by userViewModel.profilePictureUri.collectAsStateWithLifecycle()
-
 
     Column(
         modifier = Modifier
@@ -98,7 +103,7 @@ fun HomeContent(navController: NavController, user: User, totals: DailyTotalsUi,
             WeightProgressCard(user.currentWeight, user.targetWeight, user.goal)
             TodayActivityCard(navController, user)
             QuickActionsCard(navController)
-            DailyTipCard()
+            DailyTipCard(homeUiState.dailyTip)
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
@@ -435,19 +440,39 @@ fun QuickActionsCard(navController: NavController) {
 
         Spacer(Modifier.height(12.dp))
 
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            QuickActionItem(
-                modifier = Modifier.weight(1f),
-                icon = Icons.Default.Add,
-                label = "Log Food",
-                onClick = { navController.navigate(Screen.LogFood.route) }
-            )
-            QuickActionItem(
-                modifier = Modifier.weight(1f),
-                icon = Icons.Default.RestaurantMenu,
-                label = "Meal Plan",
-                onClick = { navController.navigate(Screen.MealPlan.route) }
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                QuickActionItem(
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Default.Add,
+                    label = "Log Food",
+                    description = "Track your meals",
+                    onClick = { navController.navigate(Screen.LogFood.route) }
+                )
+                QuickActionItem(
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Default.RestaurantMenu,
+                    label = "Meal Plan",
+                    description = "View your plan",
+                    onClick = { navController.navigate(Screen.MealPlan.route) }
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                QuickActionItem(
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Default.BubbleChart,
+                    label = "AI Tips",
+                    description = "Get recommendations",
+                    onClick = { navController.navigate(Screen.AiTips.route) }
+                )
+                QuickActionItem(
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Default.History,
+                    label = "History",
+                    description = "View past logs",
+                    onClick = { navController.navigate(Screen.History.route) }
+                )
+            }
         }
     }
 }
@@ -457,6 +482,7 @@ fun QuickActionItem(
     modifier: Modifier = Modifier,
     icon: ImageVector,
     label: String,
+    description: String,
     onClick: () -> Unit
 ) {
     Card(
@@ -467,28 +493,28 @@ fun QuickActionItem(
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(icon, contentDescription = null, tint = PrimaryGreen)
             Spacer(Modifier.height(8.dp))
-            Text(label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+            Text(label, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+            Text(description, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
 @Composable
-fun DailyTipCard() {
+fun DailyTipCard(tip: String) {
     Card(
         shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFDE7)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(Modifier.padding(20.dp)) {
             Icon(
                 Icons.Default.Lightbulb,
                 contentDescription = null,
-                tint = Color(0xFFFFCA28),
+                tint = Color(0xFF42A5F5),
                 modifier = Modifier.size(32.dp)
             )
             Spacer(Modifier.width(16.dp))
@@ -501,7 +527,7 @@ fun DailyTipCard() {
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Start your day with a glass of warm water to boost your metabolism.",
+                    tip,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp
                 )

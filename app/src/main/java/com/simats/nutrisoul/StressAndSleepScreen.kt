@@ -6,10 +6,15 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -41,6 +46,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.*
@@ -51,7 +57,72 @@ fun StressAndSleepScreen(
     viewModel: StressAndSleepViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
+    val alarmPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (isGranted) {
+                viewModel.onReminderToggled(true, context)
+            }
+        }
+    )
+
+    StressAndSleepScreenContent(navController, uiState, viewModel) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            if (alarmManager.canScheduleExactAlarms()) {
+                viewModel.onReminderToggled(it, context)
+            } else {
+                Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).also {
+                    context.startActivity(it)
+                }
+            }
+        } else {
+            viewModel.onReminderToggled(it, context)
+        }
+    }
+
+    if (uiState.showSleepScheduleDialog) {
+        EditSleepScheduleDialog(
+            schedule = uiState.sleepSchedule,
+            onDismiss = viewModel::onDismissScheduleDialog,
+            onSave = { bedtime, wakeTime ->
+                viewModel.onSaveSchedule(bedtime, wakeTime, context)
+            }
+        )
+    }
+
+    if (uiState.showWindDownDialog) {
+        WindDownDialog(
+            onDismiss = viewModel::onDismissWindDownDialog,
+            onStart = {
+                viewModel.onDismissWindDownDialog()
+                viewModel.onStartBreathing()
+            },
+            onSnooze = {
+                viewModel.onDismissWindDownDialog()
+                // Snooze logic
+            }
+        )
+    }
+
+    if (uiState.showLogSleepDialog) {
+        LogSleepDialog(
+            schedule = uiState.sleepSchedule,
+            onDismiss = viewModel::onDismissLogSleepDialog,
+            onLog = viewModel::onLogSleep
+        )
+    }
+}
+
+@Composable
+fun StressAndSleepScreenContent(
+    navController: NavController,
+    uiState: StressAndSleepUiState,
+    viewModel: StressAndSleepViewModel,
+    onReminderToggled: (Boolean) -> Unit
+) {
     Scaffold(
         bottomBar = { BottomNavigationBar(navController = navController) }
     ) { innerPadding ->
@@ -62,90 +133,80 @@ fun StressAndSleepScreen(
                 .background(Color(0xFFF0F2F5))
                 .verticalScroll(rememberScrollState())
         ) {
-            MindCareHeader(navController)
-            MindCareBody(uiState = uiState, viewModel = viewModel)
-        }
-    }
-
-    if (uiState.showSleepScheduleDialog) {
-        EditSleepScheduleDialog(
-            schedule = uiState.sleepSchedule,
-            onDismiss = viewModel::onDismissScheduleDialog,
-            onSave = viewModel::onSaveSchedule
-        )
-    }
-}
-
-@Composable
-fun MindCareHeader(navController: NavController) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color(0xFF1DE9B6), Color(0xFF00BFA5))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(Color(0xFF1DE9B6), Color(0xFF00BFA5))
+                        )
+                    )
+                    .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 48.dp)
+            ) {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 48.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "Stress & Sleep Support",
+                        color = Color.White,
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Nutrition-focused guidance for calm mind, better sleep, and healthy eating",
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 16.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .offset(y = (-32).dp)
+                    .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
+                    .background(Color.White)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                WhyStressMattersCard()
+                SleepTrackingSection(
+                    uiState = uiState,
+                    onEditClick = viewModel::onEditScheduleClicked,
+                    onLogClick = viewModel::onLogTodaySleepClicked,
+                    onReminderToggled = onReminderToggled,
+                    reminderEnabled = uiState.reminderEnabled
                 )
-            )
-            .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 48.dp)
-    ) {
-        IconButton(onClick = { navController.popBackStack() }) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = Color.White
-            )
-        }
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 48.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                "Mind Care",
-                color = Color.White,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                "Nutrition-focused guidance for calm mind, better sleep, and healthy eating",
-                color = Color.White.copy(alpha = 0.9f),
-                fontSize = 16.sp,
-                textAlign = TextAlign.Center
-            )
+                RecentSleepHistoryCard(sleepLogs = uiState.sleepLogs)
+                FoodsToReduceStressSection()
+                NutritionTipsForSleepSection()
+                QuickCalmToolsSection(isBreathing = uiState.isBreathing, onStart = viewModel::onStartBreathing, onStop = viewModel::onStopBreathing)
+                WhyThisMattersInfoCard()
+            }
         }
     }
 }
 
 @Composable
-fun MindCareBody(
+fun SleepTrackingSection(
     uiState: StressAndSleepUiState,
-    viewModel: StressAndSleepViewModel
+    onEditClick: () -> Unit,
+    onLogClick: () -> Unit,
+    onReminderToggled: (Boolean) -> Unit,
+    reminderEnabled: Boolean
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .offset(y = (-32).dp)
-            .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-            .background(Color.White)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
-        WhyStressMattersCard()
-        SleepTrackingSection(uiState = uiState, onEditClick = viewModel::onEditScheduleClicked, onLogClick = viewModel::onLogTodaySleepClicked)
-        BedtimeReminderCard(reminderEnabled = uiState.reminderEnabled, onToggle = viewModel::onReminderToggled, sleepSchedule = uiState.sleepSchedule)
-        RecentSleepHistoryCard(sleepLogs = uiState.sleepLogs)
-        FoodsToReduceStressSection()
-        NutritionTipsForSleepSection()
-        QuickCalmToolsSection(isBreathing = uiState.isBreathing, onStart = viewModel::onStartBreathing, onStop = viewModel::onStopBreathing)
-        WhyThisMattersInfoCard()
-    }
-}
-
-@Composable
-fun SleepTrackingSection(uiState: StressAndSleepUiState, onEditClick: () -> Unit, onLogClick: () -> Unit) {
     val todaySleepLog = uiState.sleepLogs.firstOrNull { it.date.isEqual(java.time.LocalDate.now()) }
 
     Column(
@@ -231,49 +292,140 @@ fun SleepTrackingSection(uiState: StressAndSleepUiState, onEditClick: () -> Unit
                 }
             }
         }
+        BedtimeReminderCard(reminderEnabled = reminderEnabled, onReminderToggled = onReminderToggled)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LogSleepDialog(
+    schedule: SleepSchedule,
+    onDismiss: () -> Unit,
+    onLog: (LocalTime, LocalTime, SleepQuality) -> Unit
+) {
+    var bedtime by remember { mutableStateOf(schedule.bedtime) }
+    var wakeTime by remember { mutableStateOf(schedule.wakeTime) }
+    var quality by remember { mutableStateOf(SleepQuality.Good) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text("Log Your Sleep", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Spacer(modifier = Modifier.height(24.dp))
+
+                TimePicker(label = "Bedtime", time = bedtime, onTimeChange = { bedtime = it })
+                Spacer(modifier = Modifier.height(16.dp))
+                TimePicker(label = "Wake-up Time", time = wakeTime, onTimeChange = { wakeTime = it })
+                Spacer(modifier = Modifier.height(16.dp))
+                SleepQualitySelector(selectedQuality = quality, onQualitySelected = { quality = it })
+
+                Spacer(modifier = Modifier.height(24.dp))
+                Row {
+                    TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                        Text("Cancel")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = { onLog(bedtime, wakeTime, quality) }, modifier = Modifier.weight(1f)) {
+                        Text("Log")
+                    }
+                }
+            }
+        }
     }
 }
 
 @Composable
-fun BedtimeReminderCard(reminderEnabled: Boolean, onToggle: (Boolean) -> Unit, sleepSchedule: SleepSchedule) {
-    val context = LocalContext.current
+fun SleepQualitySelector(selectedQuality: SleepQuality, onQualitySelected: (SleepQuality) -> Unit) {
+    Column {
+        Text("Sleep Quality", fontWeight = FontWeight.Medium)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+            SleepQuality.values().forEach { quality ->
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.clickable { onQualitySelected(quality) }
+                ) {
+                    Text(quality.emoji, fontSize = 32.sp)
+                    Text(quality.label)
+                    RadioButton(
+                        selected = selectedQuality == quality,
+                        onClick = { onQualitySelected(quality) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BedtimeReminderCard(reminderEnabled: Boolean, onReminderToggled: (Boolean) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5).copy(alpha = 0.5f))
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Icon(
-                imageVector = Icons.Default.Notifications,
-                contentDescription = "Reminder",
-                tint = Color(0xFF7E57C2),
-                modifier = Modifier.background(Color.White, CircleShape).padding(8.dp)
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Column {
                 Text("Bedtime Reminder", fontWeight = FontWeight.Bold)
-                Text("Get notified at bedtime", fontSize = 12.sp, color = Color.Gray)
+                Text("Get notified at bedtime", color = Color.Gray)
             }
-            Switch(
-                checked = reminderEnabled,
-                onCheckedChange = {
-                    onToggle(it)
-                    if (it) {
-                        scheduleBedtimeReminder(context, sleepSchedule.bedtime)
-                    } else {
-                        cancelBedtimeReminder(context)
-                    }
-                },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = Color(0xFF7E57C2),
-                    uncheckedThumbColor = Color.White,
-                    uncheckedTrackColor = Color.LightGray
+            Switch(checked = reminderEnabled, onCheckedChange = onReminderToggled)
+        }
+    }
+}
+
+@Composable
+fun WindDownDialog(onDismiss: () -> Unit, onStart: () -> Unit, onSnooze: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Default.NightsStay,
+                    contentDescription = "Moon",
+                    tint = Color(0xFF7E57C2),
+                    modifier = Modifier.size(40.dp)
                 )
-            )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("It's bedtime", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Text("Sleeping on time helps digestion and reduces cravings tomorrow.", textAlign = TextAlign.Center)
+                Spacer(modifier = Modifier.height(16.dp))
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5))
+                ) {
+                    Row(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = Icons.Default.Lightbulb, contentDescription = "", tint = Color(0xFF7E57C2))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Quality sleep helps control hunger hormones and supports mindful eating.", fontSize = 12.sp)
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = onStart,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7E57C2))
+                ) {
+                    Text("Start Wind-Down", color = Color.White)
+                }
+                TextButton(onClick = onSnooze, modifier = Modifier.fillMaxWidth()) {
+                    Text("Remind Me in 10 Minutes")
+                }
+            }
         }
     }
 }
@@ -438,19 +590,28 @@ fun EditSleepScheduleDialog(schedule: SleepSchedule, onDismiss: () -> Unit, onSa
 
 @Composable
 fun TimePicker(label: String, time: LocalTime, onTimeChange: (LocalTime) -> Unit) {
-    var hourString by remember(time) { mutableStateOf(time.hour.toString()) }
-    var minuteString by remember(time) { mutableStateOf(time.minute.toString().padStart(2, '0')) }
+    var hourString by remember { mutableStateOf(time.hour.toString()) }
+    var minuteString by remember { mutableStateOf(time.minute.toString().padStart(2, '0')) }
+
+    LaunchedEffect(time) {
+        hourString = time.hour.toString()
+        minuteString = time.minute.toString().padStart(2, '0')
+    }
 
     Column {
         Text(label, fontWeight = FontWeight.Medium)
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
                 value = hourString,
-                onValueChange = {
-                    hourString = it
-                    val hour = it.toIntOrNull()
-                    if (hour != null && hour in 0..23) {
-                        onTimeChange(time.withHour(hour))
+                onValueChange = { newHour ->
+                    if (newHour.length <= 2) {
+                        hourString = newHour.filter { it.isDigit() }
+                        val hour = hourString.toIntOrNull()
+                        if (hour != null && hour in 0..23) {
+                            onTimeChange(time.withHour(hour))
+                        } else if (hourString.isEmpty()) {
+                            onTimeChange(time.withHour(0))
+                        }
                     }
                 },
                 modifier = Modifier.weight(1f),
@@ -460,11 +621,15 @@ fun TimePicker(label: String, time: LocalTime, onTimeChange: (LocalTime) -> Unit
             Spacer(modifier = Modifier.width(8.dp))
             OutlinedTextField(
                 value = minuteString,
-                onValueChange = {
-                    minuteString = it
-                    val minute = it.toIntOrNull()
-                    if (minute != null && minute in 0..59) {
-                        onTimeChange(time.withMinute(minute))
+                onValueChange = { newMinute ->
+                    if (newMinute.length <= 2) {
+                        minuteString = newMinute.filter { it.isDigit() }
+                        val minute = minuteString.toIntOrNull()
+                        if (minute != null && minute in 0..59) {
+                            onTimeChange(time.withMinute(minute))
+                        } else if (minuteString.isEmpty()) {
+                            onTimeChange(time.withMinute(0))
+                        }
                     }
                 },
                 modifier = Modifier.weight(1f),
@@ -473,40 +638,6 @@ fun TimePicker(label: String, time: LocalTime, onTimeChange: (LocalTime) -> Unit
             )
         }
     }
-}
-
-fun scheduleBedtimeReminder(context: Context, bedtime: LocalTime) {
-    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    val intent = Intent(context, BedtimeReminderReceiver::class.java)
-    val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-        // Handle case where permission is not granted
-        return
-    }
-
-    val calendar = Calendar.getInstance().apply {
-        timeInMillis = System.currentTimeMillis()
-        set(Calendar.HOUR_OF_DAY, bedtime.hour)
-        set(Calendar.MINUTE, bedtime.minute)
-        set(Calendar.SECOND, 0)
-        if (before(Calendar.getInstance())) { // if time has already passed today, schedule for tomorrow
-            add(Calendar.DATE, 1)
-        }
-    }
-
-    alarmManager.setExactAndAllowWhileIdle(
-        AlarmManager.RTC_WAKEUP,
-        calendar.timeInMillis,
-        pendingIntent
-    )
-}
-
-fun cancelBedtimeReminder(context: Context) {
-    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    val intent = Intent(context, BedtimeReminderReceiver::class.java)
-    val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-    alarmManager.cancel(pendingIntent)
 }
 
 @Composable
@@ -729,4 +860,31 @@ fun SectionHeader(icon: ImageVector, title: String) {
 @Composable
 fun MindCareScreenPreview() {
     StressAndSleepScreen(rememberNavController())
+}
+
+fun scheduleBedtimeReminder(context: Context, bedtime: LocalTime) {
+    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    val intent = Intent(context, BedtimeReminderReceiver::class.java)
+    val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+        // Handle case where permission is not granted
+        return
+    }
+
+    val calendar = Calendar.getInstance().apply {
+        timeInMillis = System.currentTimeMillis()
+        set(Calendar.HOUR_OF_DAY, bedtime.hour)
+        set(Calendar.MINUTE, bedtime.minute)
+        set(Calendar.SECOND, 0)
+        if (before(Calendar.getInstance())) {
+            add(Calendar.DATE, 1)
+        }
+    }
+
+    alarmManager.setExactAndAllowWhileIdle(
+        AlarmManager.RTC_WAKEUP,
+        calendar.timeInMillis,
+        pendingIntent
+    )
 }

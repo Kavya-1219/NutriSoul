@@ -15,18 +15,16 @@ class BedtimeReminderReceiver : BroadcastReceiver() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 "bedtime_reminder",
-                "Bedtime Reminder",
-                NotificationManager.IMPORTANCE_HIGH
+                "Bedtime Reminders",
+                NotificationManager.IMPORTANCE_DEFAULT
             )
             notificationManager.createNotificationChannel(channel)
         }
 
         val notification = NotificationCompat.Builder(context, "bedtime_reminder")
             .setContentTitle("Bedtime Reminder")
-            .setContentText("It's time to get ready for bed!")
+            .setContentText("It's time to wind down for bed.")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
             .build()
 
         notificationManager.notify(1, notification)
