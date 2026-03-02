@@ -13,6 +13,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -52,27 +53,48 @@ class HealthConnectManager @Inject constructor(
         context.startActivity(intent)
     }
 
-    suspend fun getTodaySteps(): Long {
-        val startOfDay = LocalDate.now().atStartOfDay(ZoneId.systemDefault())
+    suspend fun readTodaySteps(): Long {
+        val startOfDay = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant()
         val now = Instant.now()
-        
-        val permissions = setOf(HealthPermission.getReadPermission(StepsRecord::class))
-        if (!hasPermissions(permissions)) {
-            return 0L
-        }
+
+        if (!hasPermissions(PERMISSIONS)) return 0L
 
         return try {
             val response = _healthConnectClient.aggregate(
                 AggregateRequest(
                     metrics = setOf(StepsRecord.COUNT_TOTAL),
-                    timeRangeFilter = TimeRangeFilter.between(startOfDay.toInstant(), now)
+                    timeRangeFilter = TimeRangeFilter.between(startOfDay, now)
                 )
             )
             response[StepsRecord.COUNT_TOTAL] ?: 0L
         } catch (e: Exception) {
-            // Handle exceptions, e.g., user revokes permission
             0L
         }
+    }
+
+    suspend fun readLast7DaysSteps(): List<Long> {
+        val today = LocalDate.now()
+        val sevenDaysAgo = today.minus(6, ChronoUnit.DAYS)
+        val dailySteps = mutableListOf<Long>()
+
+        for (i in 0..6) {
+            val date = sevenDaysAgo.plus(i.toLong(), ChronoUnit.DAYS)
+            val startOfDay = date.atStartOfDay(ZoneId.systemDefault()).toInstant()
+            val endOfDay = date.plus(1, ChronoUnit.DAYS).atStartOfDay(ZoneId.systemDefault()).toInstant()
+
+            try {
+                val response = _healthConnectClient.aggregate(
+                    AggregateRequest(
+                        metrics = setOf(StepsRecord.COUNT_TOTAL),
+                        timeRangeFilter = TimeRangeFilter.between(startOfDay, endOfDay)
+                    )
+                )
+                dailySteps.add(response[StepsRecord.COUNT_TOTAL] ?: 0L)
+            } catch (e: Exception) {
+                dailySteps.add(0L)
+            }
+        }
+        return dailySteps
     }
     
     companion object {

@@ -94,6 +94,7 @@ dependencies {
     implementation("org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.4")
     implementation("org.tensorflow:tensorflow-lite-gpu:2.12.0")
     implementation("com.google.accompanist:accompanist-permissions:0.31.5-beta")
+    implementation("androidx.compose.foundation:foundation-layout-android:1.6.7")
 
 
     // CameraX

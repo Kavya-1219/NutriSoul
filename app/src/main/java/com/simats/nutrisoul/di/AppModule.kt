@@ -10,7 +10,7 @@ import com.simats.nutrisoul.data.CustomFoodDao
 import com.simats.nutrisoul.data.FoodDao
 import com.simats.nutrisoul.data.IntakeDao
 import com.simats.nutrisoul.data.UserDao
-import com.simats.nutrisoul.data.local.StepsDao
+import com.simats.nutrisoul.data.StepsDao
 import com.simats.nutrisoul.data.network.NutritionApiService
 import dagger.Module
 import dagger.Provides

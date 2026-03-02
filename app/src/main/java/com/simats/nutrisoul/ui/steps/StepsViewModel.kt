@@ -1,57 +1,72 @@
 package com.simats.nutrisoul.ui.steps
 
-import androidx.health.connect.client.HealthConnectClient
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.content.Intent
+import android.os.Build
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.simats.nutrisoul.data.health.HealthConnectManager
+import com.simats.nutrisoul.data.SessionManager
+import com.simats.nutrisoul.steps.StepTrackingService
+import com.simats.nutrisoul.steps.StepsStore
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class StepsViewModel @Inject constructor(
-    private val healthConnectManager: HealthConnectManager
-) : ViewModel() {
+class StepsViewModel @Inject constructor(app: Application) : AndroidViewModel(app) {
 
-    private val _uiState = MutableStateFlow(StepsUiState())
-    val uiState: StateFlow<StepsUiState> = _uiState
+    private val store = StepsStore(app.applicationContext)
+    private val sessionManager = SessionManager(app.applicationContext)
 
-    init {
+    val todaySteps: StateFlow<Int> = sessionManager.currentUserEmailFlow().flatMapLatest { email ->
+        if (email != null) {
+            store.todayStepsFlow(email)
+        } else {
+            store.todayStepsFlow("guest")
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val autoEnabled: StateFlow<Boolean> = sessionManager.currentUserEmailFlow().flatMapLatest { email ->
+        if (email != null) {
+            store.autoEnabledFlow(email)
+        } else {
+            store.autoEnabledFlow("guest")
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun setAutoTracking(enabled: Boolean) {
         viewModelScope.launch {
-            val status = when (healthConnectManager.availabilityStatus) {
-                HealthConnectClient.SDK_AVAILABLE -> HealthConnectStatus.Installed
-                HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> HealthConnectStatus.NotInstalled
-                else -> HealthConnectStatus.NotAvailable
+            val email = sessionManager.currentUserEmailFlow().first()
+            if (email != null) {
+                store.setAutoEnabled(email, enabled)
             }
-            val hasPermissions = if (status == HealthConnectStatus.Installed) {
-                healthConnectManager.hasPermissions(HealthConnectManager.PERMISSIONS)
+        }
+
+        val ctx = getApplication<Application>().applicationContext
+        val intent = Intent(ctx, StepTrackingService::class.java)
+
+        if (enabled) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                ctx.startForegroundService(intent)
             } else {
-                false
+                ctx.startService(intent)
             }
-            _uiState.update {
-                it.copy(
-                    healthConnectStatus = status,
-                    hasPermissions = hasPermissions
-                )
-            }
+        } else {
+            ctx.stopService(intent)
         }
     }
 
-    fun onEvent(event: StepsScreenEvent) {
-        when (event) {
-            is StepsScreenEvent.OnPermissionResult -> {
-                _uiState.value = _uiState.value.copy(hasPermissions = event.granted)
-                if (event.granted) {
-                    // Optionally refresh data
-                }
+    fun addManualSteps(steps: Int) {
+        viewModelScope.launch {
+            val email = sessionManager.currentUserEmailFlow().first()
+            if (email != null) {
+                store.addManualSteps(email, steps)
             }
-            is StepsScreenEvent.OnGoalSelected -> {
-                _uiState.value = _uiState.value.copy(stepsGoal = event.goal)
-            }
-            else -> {}
         }
     }
 }

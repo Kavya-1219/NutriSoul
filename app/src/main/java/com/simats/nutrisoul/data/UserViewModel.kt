@@ -1,21 +1,25 @@
 package com.simats.nutrisoul.data
 
+import android.app.Application
+import android.content.Intent
 import android.net.Uri
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.simats.nutrisoul.steps.StepTrackingService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 @HiltViewModel
-class UserViewModel @Inject constructor() : ViewModel() {
+class UserViewModel @Inject constructor(application: Application) : AndroidViewModel(application) {
 
     private val _user = MutableStateFlow<User?>(null)
     val user = _user.asStateFlow()
@@ -34,15 +38,19 @@ class UserViewModel @Inject constructor() : ViewModel() {
 
     private val auth = FirebaseAuth.getInstance()
     private val db = Firebase.firestore
+    private val sessionManager = SessionManager(application)
 
     init {
         auth.addAuthStateListener { firebaseAuth ->
             val firebaseUser = firebaseAuth.currentUser
             if (firebaseUser != null) {
+                runBlocking { sessionManager.setCurrentUser(firebaseUser.email!!) }
                 loadUserData(firebaseUser.uid, Source.DEFAULT)
             } else {
                 _user.value = null
                 _isLoading.value = false
+                runBlocking { sessionManager.clearCurrentUser() }
+                getApplication<Application>().stopService(Intent(getApplication(), StepTrackingService::class.java))
             }
         }
     }

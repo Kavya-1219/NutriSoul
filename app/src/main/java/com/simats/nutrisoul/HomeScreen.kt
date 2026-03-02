@@ -1,5 +1,6 @@
 package com.simats.nutrisoul
 
+import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,6 +22,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -34,16 +36,33 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.simats.nutrisoul.data.User
 import com.simats.nutrisoul.data.UserViewModel
+import com.simats.nutrisoul.steps.StepTrackingService
 import com.simats.nutrisoul.ui.DailyTotalsUi
+import com.simats.nutrisoul.ui.steps.StepsViewModel
 import com.simats.nutrisoul.ui.theme.PrimaryGreen
 import java.util.Calendar
 
 @Composable
-fun HomeScreen(navController: NavController, userViewModel: UserViewModel, homeViewModel: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(
+    navController: NavController,
+    userViewModel: UserViewModel,
+    homeViewModel: HomeViewModel = hiltViewModel(),
+    stepsViewModel: StepsViewModel
+) {
     val user by userViewModel.user.collectAsStateWithLifecycle()
     val isLoading by userViewModel.isLoading.collectAsStateWithLifecycle()
     val totals by homeViewModel.todayTotals.collectAsState()
     val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
+    val stepsToday by stepsViewModel.todaySteps.collectAsStateWithLifecycle()
+    val autoEnabled by stepsViewModel.autoEnabled.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    LaunchedEffect(autoEnabled) {
+        if (autoEnabled) {
+            val intent = Intent(context, StepTrackingService::class.java)
+            context.startService(intent)
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -58,14 +77,17 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel, homeV
         ) {
             if (isLoading) {
                 CircularProgressIndicator(color = PrimaryGreen)
-            } else if (user != null) {
-                HomeContent(navController, user!!, totals, homeUiState, userViewModel)
             } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Error loading user data.")
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { userViewModel.retryLoadUserData() }) {
-                        Text("Retry")
+                val currentUser = user
+                if (currentUser != null) {
+                    HomeContent(navController, currentUser, totals, homeUiState, userViewModel, stepsToday.toLong())
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Error loading user data.")
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { userViewModel.retryLoadUserData() }) {
+                            Text("Retry")
+                        }
                     }
                 }
             }
@@ -79,7 +101,8 @@ fun HomeContent(
     user: User,
     totals: DailyTotalsUi,
     homeUiState: HomeUiState,
-    userViewModel: UserViewModel
+    userViewModel: UserViewModel,
+    todaysSteps: Long
 ) {
     val targetCalories = when (user.goal) {
         "Weight Loss" -> user.bmr - 500
@@ -101,7 +124,7 @@ fun HomeContent(
         ) {
             DailyCalorieGoalCard(targetCalories, totals)
             WeightProgressCard(user.currentWeight, user.targetWeight, user.goal)
-            TodayActivityCard(navController, user)
+            TodayActivityCard(navController, user, todaysSteps.toInt())
             QuickActionsCard(navController)
             DailyTipCard(homeUiState.dailyTip)
             Spacer(modifier = Modifier.height(24.dp))
@@ -348,7 +371,7 @@ fun WeightBox(
 
 
 @Composable
-fun TodayActivityCard(navController: NavController, user: User) {
+fun TodayActivityCard(navController: NavController, user: User, todaysSteps: Int) {
 
     Column {
 
@@ -377,7 +400,7 @@ fun TodayActivityCard(navController: NavController, user: User) {
                 modifier = Modifier.weight(1f),
                 icon = Icons.AutoMirrored.Filled.DirectionsWalk,
                 label = "steps",
-                value = user.todaysSteps.toString(),
+                value = todaysSteps.toString(),
                 background = Color(0xFFF3E5F5),
                 iconColor = Color(0xFFBA68C8),
                 onClick = { navController.navigate(Screen.StepsTracking.route) }

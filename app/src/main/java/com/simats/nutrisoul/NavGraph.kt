@@ -1,12 +1,14 @@
 package com.simats.nutrisoul
 
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navigation
 import com.simats.nutrisoul.data.UserViewModel
+import com.simats.nutrisoul.ui.steps.StepsViewModel
 
 @Composable
 fun NavGraph(
@@ -52,86 +54,96 @@ fun NavGraph(
         composable("forgot_password") {
             ForgotPasswordScreen(navController = navController)
         }
-        composable(Screen.PersonalDetails.route) {
-            PersonalDetailsScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onContinueClicked = { navController.navigate(Screen.BodyDetails.route) },
-                userViewModel = userViewModel
-            )
-        }
-        composable(Screen.BodyDetails.route) {
-            BodyDetailsScreen(navController = navController, userViewModel = userViewModel)
-        }
-        composable(Screen.FoodPreferences.route) {
-            FoodPreferencesScreen(navController = navController, userViewModel = userViewModel)
-        }
-        composable(Screen.LifestyleAndActivity.route) {
-            LifestyleAndActivityScreen(navController = navController, userViewModel = userViewModel)
-        }
-        composable(Screen.Goals.route) {
-            GoalsScreen(navController = navController, userViewModel = userViewModel)
-        }
-        composable(Screen.GoalWeight.route) {
-            GoalWeightScreen(navController = navController, userViewModel = userViewModel)
-        }
-        composable(Screen.HealthConditions.route) {
-            HealthConditionsScreen(navController = navController, userViewModel = userViewModel)
-        }
-        composable(Screen.HealthDetails.route) {
-            HealthDetailsScreen(navController = navController, userViewModel = userViewModel)
-        }
-        composable(Screen.MealsPerDay.route) {
-            MealPerDayScreen(navController = navController, userViewModel = userViewModel)
-        }
-        composable(Screen.Home.route) {
-            HomeScreen(navController = navController, userViewModel = userViewModel, homeViewModel = homeViewModel)
-        }
-        composable(Screen.WaterTracking.route) {
-            WaterTrackingScreen(navController = navController, userViewModel = userViewModel)
-        }
-        composable(Screen.StepsTracking.route) {
-            StepsTrackingScreen(navController = navController)
-        }
+        navigation(startDestination = Screen.PersonalDetails.route, route = "main_graph") {
+            composable(Screen.PersonalDetails.route) {
+                PersonalDetailsScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onContinueClicked = { navController.navigate(Screen.BodyDetails.route) },
+                    userViewModel = userViewModel
+                )
+            }
+            composable(Screen.BodyDetails.route) {
+                BodyDetailsScreen(navController = navController, userViewModel = userViewModel)
+            }
+            composable(Screen.FoodPreferences.route) {
+                FoodPreferencesScreen(navController = navController, userViewModel = userViewModel)
+            }
+            composable(Screen.LifestyleAndActivity.route) {
+                LifestyleAndActivityScreen(navController = navController, userViewModel = userViewModel)
+            }
+            composable(Screen.Goals.route) {
+                GoalsScreen(navController = navController, userViewModel = userViewModel)
+            }
+            composable(Screen.GoalWeight.route) {
+                GoalWeightScreen(navController = navController, userViewModel = userViewModel)
+            }
+            composable(Screen.HealthConditions.route) {
+                HealthConditionsScreen(navController = navController, userViewModel = userViewModel)
+            }
+            composable(Screen.HealthDetails.route) {
+                HealthDetailsScreen(navController = navController, userViewModel = userViewModel)
+            }
+            composable(Screen.MealsPerDay.route) {
+                MealPerDayScreen(navController = navController, userViewModel = userViewModel)
+            }
+            composable(Screen.Home.route) {
+                val parentEntry = remember(it) {
+                    navController.getBackStackEntry("main_graph")
+                }
+                val stepsViewModel: StepsViewModel = hiltViewModel(parentEntry)
+                HomeScreen(navController = navController, userViewModel = userViewModel, homeViewModel = homeViewModel, stepsViewModel = stepsViewModel)
+            }
+            composable(Screen.WaterTracking.route) {
+                WaterTrackingScreen(navController = navController, userViewModel = userViewModel)
+            }
+            composable(Screen.StepsTracking.route) {
+                val parentEntry = remember(it) {
+                    navController.getBackStackEntry("main_graph")
+                }
+                val stepsViewModel: StepsViewModel = hiltViewModel(parentEntry)
+                StepsTrackingScreen(navController = navController, viewModel = stepsViewModel)
+            }
 
-        composable(Screen.LogFood.route) {
-            LogFoodScreen(navController = navController, viewModel = logFoodViewModel)
-        }
+            composable(Screen.LogFood.route) {
+                LogFoodScreen(navController = navController, viewModel = logFoodViewModel)
+            }
 
-        composable(Screen.ScanFood.route) {
-            ScanFoodScreen(viewModel = logFoodViewModel)
-        }
-        composable(Screen.ManualFoodEntry.route) {
-            ManualFoodEntryScreen(navController = navController, viewModel = logFoodViewModel)
-        }
-        composable(Screen.MealPlan.route) {
-            TodaysMealPlanScreen(navController = navController, viewModel = mealPlanViewModel)
-        }
-        composable(Screen.AiTips.route) {
-            AiTipsScreen(navController = navController, userViewModel = userViewModel)
-        }
-        composable(Screen.History.route) {
-            HistoryScreen(navController = navController, viewModel = historyViewModel)
-        }
-        composable(Screen.MindCare.route) {
-            StressAndSleepScreen(navController = navController, viewModel = stressAndSleepViewModel)
-        }
-        composable(Screen.Recipes.route) {
-            RecipesScreen(navController = navController)
-        }
-        composable(Screen.Insights.route) {
-            NutritionInsightsScreen(navController = navController, viewModel = nutritionInsightsViewModel)
-        }
-        composable(Screen.Settings.route) {
-            SettingsScreen(navController = navController, userViewModel = userViewModel)
-        }
-        composable("profile") {
-            ProfileScreen(navController = navController, userViewModel = userViewModel)
-        }
-        composable("help") {
-            HelpSupportScreen(navController = navController)
-        }
-        composable("about") {
-            AboutScreen(navController = navController)
+            composable(Screen.ScanFood.route) {
+                ScanFoodScreen(viewModel = logFoodViewModel)
+            }
+            composable(Screen.ManualFoodEntry.route) {
+                ManualFoodEntryScreen(navController = navController, viewModel = logFoodViewModel)
+            }
+            composable(Screen.MealPlan.route) {
+                TodaysMealPlanScreen(navController = navController, viewModel = mealPlanViewModel)
+            }
+            composable(Screen.AiTips.route) {
+                AiTipsScreen(navController = navController, userViewModel = userViewModel)
+            }
+            composable(Screen.History.route) {
+                HistoryScreen(navController = navController, viewModel = historyViewModel)
+            }
+            composable(Screen.MindCare.route) {
+                StressAndSleepScreen(navController = navController, viewModel = stressAndSleepViewModel)
+            }
+            composable(Screen.Recipes.route) {
+                RecipesScreen(navController = navController)
+            }
+            composable(Screen.Insights.route) {
+                NutritionInsightsScreen(navController = navController, viewModel = nutritionInsightsViewModel)
+            }
+            composable(Screen.Settings.route) {
+                SettingsScreen(navController = navController, userViewModel = userViewModel)
+            }
+            composable("profile") {
+                ProfileScreen(navController = navController, userViewModel = userViewModel)
+            }
+            composable("help") {
+                HelpSupportScreen(navController = navController)
+            }
+            composable("about") {
+                AboutScreen(navController = navController)
+            }
         }
     }
 }

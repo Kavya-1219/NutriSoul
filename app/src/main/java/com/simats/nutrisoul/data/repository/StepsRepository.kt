@@ -2,8 +2,8 @@ package com.simats.nutrisoul.data.repository
 
 import com.simats.nutrisoul.data.datastore.UserPreferencesRepository
 import com.simats.nutrisoul.data.health.HealthConnectManager
-import com.simats.nutrisoul.data.local.StepsDao
-import com.simats.nutrisoul.data.local.StepsEntity
+import com.simats.nutrisoul.data.StepsDao
+import com.simats.nutrisoul.data.StepsEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
@@ -33,7 +33,7 @@ class StepsRepository @Inject constructor(
      * Reads steps from Health Connect, saves to Room, and syncs to the backend.
      */
     suspend fun syncSteps() {
-        val stepsCount = healthConnectManager.getTodaySteps()
+        val stepsCount = healthConnectManager.readTodaySteps()
         val goal = stepsGoal.first()
 
         val entity = StepsEntity(

@@ -37,6 +37,10 @@ fun AddStepsModal(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(text = "Add Steps Manually")
+                Text(
+                    text = "Be genuine 🙂 Manual entry is only for times you walked without your phone.\nAdding fake steps is like faking yourself — not others.",
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
                 TextField(
                     value = steps,
                     onValueChange = { steps = it },
