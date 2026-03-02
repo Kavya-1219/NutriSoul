@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
 @HiltViewModel
-class UserViewModel @Inject constructor(private val repository: UserRepository) : ViewModel() {
+class UserViewModel @Inject constructor() : ViewModel() {
 
     private val _user = MutableStateFlow<User?>(null)
     val user = _user.asStateFlow()

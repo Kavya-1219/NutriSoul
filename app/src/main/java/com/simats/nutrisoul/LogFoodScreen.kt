@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -249,14 +250,14 @@ fun FoodDetailsSheet(foodItem: FoodItemUi, onLogFood: (FoodItemUi, Double) -> Un
         }
         Spacer(modifier = Modifier.height(16.dp))
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-            IconButton(onClick = { 
+            IconButton(onClick = {
                 val currentQuantity = quantity.toDoubleOrNull() ?: 0.0
-                quantity = (currentQuantity - 1).coerceAtLeast(0.0).toString() 
+                quantity = (currentQuantity - 1).coerceAtLeast(0.0).toString()
             }) {
-                Icon(Icons.Default.Add, contentDescription = "Remove")
+                Icon(Icons.Default.Remove, contentDescription = "Remove")
             }
             Text(quantity, fontWeight = FontWeight.Bold, fontSize = 20.sp, modifier = Modifier.padding(horizontal = 16.dp))
-            IconButton(onClick = { 
+            IconButton(onClick = {
                 val currentQuantity = quantity.toDoubleOrNull() ?: 0.0
                 quantity = (currentQuantity + 1).toString()
             }) {

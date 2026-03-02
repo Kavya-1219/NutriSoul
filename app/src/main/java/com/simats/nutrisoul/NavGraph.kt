@@ -90,7 +90,7 @@ fun NavGraph(
             WaterTrackingScreen(navController = navController, userViewModel = userViewModel)
         }
         composable(Screen.StepsTracking.route) {
-            StepsTrackingScreen(navController = navController, userViewModel = userViewModel)
+            StepsTrackingScreen(navController = navController)
         }
 
         composable(Screen.LogFood.route) {

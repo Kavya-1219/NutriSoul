@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.simats.nutrisoul.data.FoodRepository
 import com.simats.nutrisoul.data.models.FoodItem
 import com.simats.nutrisoul.data.models.FoodLog
+import com.simats.nutrisoul.data.models.DailyTotals
 import com.simats.nutrisoul.ui.DailyTotalsUi
 import com.simats.nutrisoul.ui.FoodItemUi
 import com.simats.nutrisoul.ui.UserTarget
@@ -29,7 +30,7 @@ class LogFoodViewModel @Inject constructor(private val repository: FoodRepositor
 
     val todayTotals: StateFlow<DailyTotalsUi> =
         repository.observeTodayTotals()
-            .map { totals ->
+            .map { totals: DailyTotals ->
                 DailyTotalsUi(
                     calories = totals.calories ?: 0.0,
                     protein = totals.protein ?: 0.0,

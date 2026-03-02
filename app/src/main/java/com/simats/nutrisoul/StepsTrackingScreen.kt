@@ -1,237 +1,134 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
 package com.simats.nutrisoul
 
-import android.Manifest
-import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.* 
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.DirectionsWalk
-import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.ShowChart
-import androidx.compose.material.icons.filled.WbSunny
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.simats.nutrisoul.data.User
-import com.simats.nutrisoul.data.UserViewModel
-import java.text.NumberFormat
-import java.util.Locale
+import com.simats.nutrisoul.data.health.HealthConnectManager
+import com.simats.nutrisoul.ui.steps.HealthConnectStatus
+import com.simats.nutrisoul.ui.steps.StepsScreenEvent
+import com.simats.nutrisoul.ui.steps.StepsUiState
+import com.simats.nutrisoul.ui.steps.StepsViewModel
 
-// -------------------------------
-//    MAIN SCREEN
-// -------------------------------
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StepsTrackingScreen(navController: NavController, userViewModel: UserViewModel) {
-
-    val user by userViewModel.user.collectAsStateWithLifecycle()
-    val automaticTracking by userViewModel.automaticTracking.collectAsStateWithLifecycle()
+fun StepsTrackingScreen(
+    navController: NavController,
+    viewModel: StepsViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val healthConnectManager = HealthConnectManager(context)
 
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-    ) { isGranted ->
-        if (isGranted) {
-            userViewModel.setAutomaticTracking(true)
+        contract = healthConnectManager.requestPermissionsActivityContract()
+    ) { grantedPermissions ->
+        if (HealthConnectManager.PERMISSIONS.containsAll(grantedPermissions)) {
+            viewModel.onEvent(StepsScreenEvent.OnPermissionResult(true))
+        } else {
+            viewModel.onEvent(StepsScreenEvent.OnPermissionResult(false))
         }
     }
 
-    // States
-    var selectedGoal by remember { mutableStateOf("5k") }
-    var showManualEntryDialog by remember { mutableStateOf(false) }
-    var showAddStepsChoiceDialog by remember { mutableStateOf(false) }
-    var showRemoveStepsDialog by remember { mutableStateOf(false) }
-
-    val goalInSteps = selectedGoal.replace("k", "000").toInt()
-
-    // UI
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF00C853))
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-
-            // Header
-            StepsHeader(navController)
-
-            // White container
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
-                    .background(Color.White)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-
-                user?.let { StepsProgress(it.todaysSteps, goalInSteps) }
-
-                TrackingModeSwitch(
-                    automaticTracking = automaticTracking,
-                    onCheckedChange = { checked ->
-                        if (checked) {
-                            if (ContextCompat.checkSelfPermission(
-                                    context,
-                                    Manifest.permission.ACTIVITY_RECOGNITION
-                                ) == PackageManager.PERMISSION_GRANTED
-                            ) {
-                                userViewModel.setAutomaticTracking(true)
-                            } else {
-                                permissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
-                            }
-                        } else {
-                            userViewModel.setAutomaticTracking(false)
-                        }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Steps Tracking") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
                 )
+            )
+        },
+        containerColor = Color(0xFFF0FDF4)
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+        ) {
+            HeaderSection()
 
-                MotivationMessage()
-
-                user?.let { InfoBoxes(it.todaysSteps) }
-
-                DailyGoal(selectedGoal) { selectedGoal = it }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    AddStepsButton(
-                        modifier = Modifier.weight(1f),
-                        onClick = { showAddStepsChoiceDialog = true }
-                    )
-                    RemoveStepsButton(
-                        modifier = Modifier.weight(1f),
-                        onClick = { showRemoveStepsDialog = true }
-                    )
-                }
-
-                TipsToIncreaseSteps()
+            if (!uiState.hasPermissions || uiState.healthConnectStatus != HealthConnectStatus.Installed) {
+                PermissionsCard(
+                    status = uiState.healthConnectStatus,
+                    onGrantClick = { permissionLauncher.launch(HealthConnectManager.PERMISSIONS) },
+                    onInstallClick = { healthConnectManager.installHealthConnect() }
+                )
+            } else {
+                StepsContent(
+                    uiState = uiState,
+                    onGoalSelected = { goal -> viewModel.onEvent(StepsScreenEvent.OnGoalSelected(goal)) },
+                    onAddStepsClicked = { /* TODO: Implement Manual Add Steps Dialog */ }
+                )
             }
         }
-    }
-
-    // Add steps choice dialog
-    if (showAddStepsChoiceDialog) {
-        AddStepsChoiceDialog(
-            onDismiss = { showAddStepsChoiceDialog = false },
-            onAddFromGoal = {
-                userViewModel.updateSteps(goalInSteps)
-                showAddStepsChoiceDialog = false
-            },
-            onEnterManually = {
-                showAddStepsChoiceDialog = false
-                showManualEntryDialog = true
-            }
-        )
-    }
-
-    // Manual entry dialog
-    if (showManualEntryDialog) {
-        ManualStepsDialog(
-            onDismiss = { showManualEntryDialog = false },
-            onSubmit = { addedSteps ->
-                userViewModel.updateSteps(addedSteps)
-                showManualEntryDialog = false
-            },
-            showHonestyMessage = true
-        )
-    }
-
-    if (showRemoveStepsDialog) {
-        ManualStepsDialog(
-            onDismiss = { showRemoveStepsDialog = false },
-            onSubmit = { removedSteps ->
-                userViewModel.updateSteps(-removedSteps)
-                showRemoveStepsDialog = false
-            },
-            title = "Remove Steps Manually",
-            submitButtonText = "Remove",
-            showHonestyMessage = false
-        )
     }
 }
 
-// -------------------------------
-//    HEADER
-// -------------------------------
 @Composable
-private fun StepsHeader(navController: NavController) {
-    Row(
+private fun HeaderSection() {
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = { navController.popBackStack() }) {
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = Color.White
+            .height(100.dp)
+            .background(
+                brush = Brush.verticalGradient(colors = listOf(Color(0xFF10B981), Color(0xFF059669))),
+                shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
             )
-        }
-        Column {
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
             Text(
-                text = "Steps Tracking",
+                "Steps Tracking",
                 color = Color.White,
-                fontSize = 20.sp,
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Every step brings you closer!",
+                "Every step brings you closer!",
                 color = Color.White.copy(alpha = 0.9f),
                 fontSize = 14.sp
             )
@@ -239,356 +136,262 @@ private fun StepsHeader(navController: NavController) {
     }
 }
 
-// -------------------------------
-//    CIRCULAR PROGRESS
-// -------------------------------
 @Composable
-private fun StepsProgress(steps: Int, goalInSteps: Int) {
-
-    val progress = (steps.toFloat() / goalInSteps).coerceIn(0f, 1f)
-    val percentage = (progress * 100).toInt()
-    val formattedSteps = NumberFormat.getNumberInstance(Locale.US).format(steps)
-
-    Box(
+private fun StepsContent(
+    uiState: StepsUiState,
+    onGoalSelected: (Int) -> Unit,
+    onAddStepsClicked: () -> Unit
+) {
+    Column(
         modifier = Modifier
-            .size(220.dp)
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
+            .padding(16.dp)
+            .offset(y = (-50).dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        CircularProgressIndicator(
-            progress = progress,
-            modifier = Modifier.fillMaxSize(),
-            strokeWidth = 16.dp,
-            color = Color(0xFF00C853),
-            trackColor = Color.LightGray.copy(alpha = 0.4f)
-        )
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                Icons.Default.DirectionsWalk,
-                contentDescription = null,
-                tint = Color(0xFF00C853),
-                modifier = Modifier.size(40.dp)
+        ProgressCard(uiState.todaySteps, uiState.stepsGoal)
+        StatsCard(uiState.caloriesBurned, uiState.distanceKm, uiState.weeklyAverage)
+        DailyGoalCard(uiState.stepsGoal, onGoalSelected)
+        
+        Button(
+            onClick = onAddStepsClicked,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Add Steps")
+            Spacer(Modifier.width(8.dp))
+            Text("Add Steps", fontSize = 16.sp)
+        }
+        
+        TipsCard()
+    }
+}
+
+
+@Composable
+fun ProgressCard(steps: Long, goal: Int) {
+    val progress = if (goal > 0) (steps.toFloat() / goal).coerceIn(0f, 1f) else 0f
+    val animatedProgress by animateFloatAsState(targetValue = progress, animationSpec = tween(1000))
+    
+    val achievement = when {
+        steps >= 15000 -> "Super Active"
+        steps >= 10000 -> "Very Active"
+        steps >= 7500 -> "Active"
+        else -> "Getting Started"
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(180.dp)) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val strokeWidth = 50f
+                    drawArc(
+                        color = Color(0xFFD1FAE5),
+                        startAngle = -90f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        style = Stroke(width = strokeWidth)
+                    )
+                    drawArc(
+                        brush = Brush.verticalGradient(listOf(Color(0xFF10B981), Color(0xFF059669))),
+                        startAngle = -90f,
+                        sweepAngle = 360 * animatedProgress,
+                        useCenter = false,
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    )
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    //Icon(painterResource(R.drawable.ic_footsteps), contentDescription = null, tint = Color(0xFF059669), modifier = Modifier.size(40.dp))
+                    Text(
+                        steps.toString(),
+                        fontSize = 36.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text("steps", color = Color.Gray)
+                    Text(
+                        "${(animatedProgress * 100).toInt()}%",
+                        color = Color(0xFF059669),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+            Text(
+                text = achievement,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFF0FDF4))
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
             )
             Text(
-                formattedSteps,
-                fontSize = 48.sp,
-                fontWeight = FontWeight.Bold
+                text = "Let's get moving today!",
+                color = Color(0xFF059669),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFF0FDF4))
+                    .padding(16.dp),
+                textAlign = TextAlign.Center
             )
-            Text("steps", color = Color.Gray)
-            Text("$percentage %", color = Color.Gray)
         }
     }
 }
 
-// -------------------------------
-//   AUTO TRACKING SWITCH
-// -------------------------------
 @Composable
-private fun TrackingModeSwitch(automaticTracking: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.4f)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Automatic Tracking", fontWeight = FontWeight.Medium)
-            Switch(checked = automaticTracking, onCheckedChange = onCheckedChange)
-        }
-    }
-}
-
-// -------------------------------
-//    MESSAGE CARD
-// -------------------------------
-@Composable
-private fun MotivationMessage() {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(Icons.Default.WbSunny, contentDescription = null, tint = Color(0xFFFFC107))
-            Spacer(Modifier.width(8.dp))
-            Text("Let's get moving today!", fontWeight = FontWeight.SemiBold)
-        }
-    }
-}
-
-// -------------------------------
-//    INFO BOXES (kcal, km, avg)
-// -------------------------------
-@Composable
-private fun InfoBoxes(steps: Int) {
-
-    val calories = (steps * 0.05).toInt()
-    val distance = steps * 0.0008
-
+fun StatsCard(calories: Int, distance: Double, avgSteps: Long) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceAround
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        InfoBox(
+        StatItem(
+            modifier = Modifier.weight(1f),
+            icon = Icons.Default.LocalFireDepartment,
             value = calories.toString(),
             label = "kcal",
-            icon = Icons.Default.LocalFireDepartment,
-            iconColor = Color(0xFFFF6D00),
-            bg = Color(0xFFFFF3E0)
+            iconColor = Color(0xFFEF4444)
         )
-        InfoBox(
-            value = "%.2f".format(distance),
+        /*StatItem(
+            modifier = Modifier.weight(1f),
+            icon = painterResource(id = R.drawable.ic_target),
+            value = String.format("%.2f", distance),
             label = "km",
-            icon = Icons.Default.ShowChart,
-            iconColor = Color(0xFF2962FF),
-            bg = Color(0xFFE3F2FD)
-        )
-        InfoBox(
-            value = "1,000",
+            iconColor = Color(0xFF3B82F6)
+        )*/
+        /*StatItem(
+            modifier = Modifier.weight(1f),
+            icon = painterResource(id = R.drawable.ic_trending_up),
+            value = avgSteps.toString(),
             label = "7-day avg",
-            icon = Icons.Default.BarChart,
-            iconColor = Color(0xFF9C27B0),
-            bg = Color(0xFFF3E5F5)
-        )
+            iconColor = Color(0xFF8B5CF6)
+        )*/
     }
 }
 
 @Composable
-private fun InfoBox(value: String, label: String, icon: ImageVector, iconColor: Color, bg: Color) {
+fun DailyGoalCard(currentGoal: Int, onGoalSelected: (Int) -> Unit) {
+    val goals = listOf(5000, 8000, 10000, 12000, 15000)
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text("Daily Goal", color = Color.Gray, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            goals.chunked(3).forEach { rowGoals ->
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    rowGoals.forEach { goal ->
+                        Button(
+                            onClick = { onGoalSelected(goal) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (currentGoal == goal) Color(0xFF10B981) else Color.White,
+                                contentColor = if (currentGoal == goal) Color.White else Color.Black
+                            ),
+                            elevation = ButtonDefaults.buttonElevation(if (currentGoal == goal) 2.dp else 0.dp)
+                        ) {
+                            Text("${goal / 1000}k")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TipsCard() {
     Card(
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = bg),
-        elevation = CardDefaults.cardElevation(0.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("💡 Tips to Increase Steps", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Spacer(Modifier.height(8.dp))
+            listOf(
+                "Take the stairs instead of elevators",
+                "Park farther away from entrances",
+                "Take short walking breaks every hour",
+                "Walk while talking on the phone"
+            ).forEach { tip ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("👟", modifier = Modifier.padding(end = 8.dp))
+                    Text(tip, fontSize = 14.sp)
+                }
+                Spacer(Modifier.height(4.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PermissionsCard(
+    status: HealthConnectStatus,
+    onGrantClick: () -> Unit,
+    onInstallClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            if (status == HealthConnectStatus.NotInstalled) {
+                Text("Health Connect Not Installed", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Spacer(Modifier.height(8.dp))
+                Text("To track your steps automatically, please install the Health Connect app from Google.", textAlign = TextAlign.Center)
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = onInstallClick) { Text("Install Now") }
+            } else {
+                Text("Permission Required", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Spacer(Modifier.height(8.dp))
+                Text("NutriSoul needs your permission to read your daily steps data from Health Connect.", textAlign = TextAlign.Center)
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = onGrantClick) { Text("Grant Permission") }
+            }
+        }
+    }
+}
+
+// NOTE: You will need to add these drawable resources `ic_footsteps`, `ic_target`, and `ic_trending_up`
+// to your `res/drawable` folder. You can use any vector assets for these.
+@Composable
+fun StatItem(modifier: Modifier, icon: Any, value: String, label: String, iconColor: Color) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(icon, contentDescription = null, tint = iconColor)
-            Spacer(Modifier.height(6.dp))
-            Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Text(label, fontSize = 12.sp, color = Color.Gray)
-        }
-    }
-}
-
-// -------------------------------
-//    DAILY GOAL SELECTOR
-// -------------------------------
-@Composable
-private fun DailyGoal(selectedGoal: String, onGoalSelected: (String) -> Unit) {
-
-    val goals = listOf("5k", "8k", "10k", "12k", "15k")
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("Daily Goal", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(10.dp))
-
-        goals.chunked(3).forEach { rowItems ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                rowItems.forEach { goal ->
-                    GoalButton(goal, selectedGoal, onGoalSelected)
-                }
+            when (icon) {
+                is ImageVector -> Icon(icon, contentDescription = null, tint = iconColor)
+                //is Int -> Icon(painterResource(id = icon), contentDescription = null, tint = iconColor)
             }
             Spacer(Modifier.height(8.dp))
+            Text(value, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            Text(label, color = Color.Gray, fontSize = 12.sp)
         }
     }
-}
-
-@Composable
-private fun GoalButton(goal: String, selectedGoal: String, onGoalSelected: (String) -> Unit) {
-    Button(
-        onClick = { onGoalSelected(goal) },
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (goal == selectedGoal) Color(0xFF00C853) else Color.White
-        ),
-        shape = RoundedCornerShape(12.dp),
-        border = if (goal != selectedGoal)
-            BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f))
-        else null
-    ) {
-        Text(goal, color = if (goal == selectedGoal) Color.White else Color.Black)
-    }
-}
-
-// -------------------------------
-//    ADD STEPS BUTTON
-// -------------------------------
-@Composable
-private fun AddStepsButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        modifier = modifier
-            .height(55.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFFE8F5E9),
-            contentColor = Color(0xFF00C853)
-        )
-    ) {
-        Icon(Icons.Default.Add, contentDescription = null)
-        Spacer(Modifier.width(8.dp))
-        Text("Add Steps", fontSize = 16.sp)
-    }
-}
-
-@Composable
-private fun RemoveStepsButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        modifier = modifier
-            .height(55.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFFFFEBEE),
-            contentColor = Color(0xFFD32F2F)
-        )
-    ) {
-        Icon(Icons.Default.Remove, contentDescription = null)
-        Spacer(Modifier.width(8.dp))
-        Text("Remove", fontSize = 16.sp)
-    }
-}
-
-// -------------------------------
-//    TIPS
-// -------------------------------
-@Composable
-private fun TipsToIncreaseSteps() {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.4f)),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Lightbulb, contentDescription = null, tint = Color(0xFFFFC107))
-                Spacer(Modifier.width(8.dp))
-                Text("Tips to Increase Steps", fontWeight = FontWeight.Bold)
-            }
-
-            Spacer(Modifier.height(12.dp))
-            TipItem("Take the stairs instead of elevators")
-            TipItem("Park farther away from entrances")
-            TipItem("Take short walking breaks every hour")
-            TipItem("Walk while talking on the phone")
-        }
-    }
-}
-
-@Composable
-private fun TipItem(text: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(vertical = 4.dp)
-    ) {
-        Icon(
-            Icons.Default.Check,
-            contentDescription = null,
-            tint = Color.Gray,
-            modifier = Modifier.size(16.dp)
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(text, color = Color.Gray, fontSize = 14.sp)
-    }
-}
-
-// -------------------------------
-//    ADD STEPS CHOICE DIALOG
-// -------------------------------
-@Composable
-fun AddStepsChoiceDialog(
-    onDismiss: () -> Unit,
-    onAddFromGoal: () -> Unit,
-    onEnterManually: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        modifier = Modifier.border(1.dp, Color.Black, RoundedCornerShape(28.dp)),
-        shape = RoundedCornerShape(28.dp),
-        containerColor = Color.White,
-        title = { Text("Add Steps") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("How would you like to add steps?")
-                TextButton(
-                    onClick = onAddFromGoal,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Add From Daily Goal")
-                }
-                TextButton(
-                    onClick = onEnterManually,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Enter Manually")
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
-}
-
-// -------------------------------
-//    MANUAL ENTRY DIALOG
-// -------------------------------
-@Composable
-fun ManualStepsDialog(
-    onDismiss: () -> Unit,
-    onSubmit: (Int) -> Unit,
-    title: String = "Add Steps Manually",
-    submitButtonText: String = "Add",
-    showHonestyMessage: Boolean
-) {
-    var input by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        modifier = Modifier.border(1.dp, Color.Black, RoundedCornerShape(28.dp)),
-        shape = RoundedCornerShape(28.dp),
-        containerColor = Color.White,
-        confirmButton = {
-            TextButton(onClick = {
-                val value = input.toIntOrNull() ?: 0
-                if (value > 0) onSubmit(value)
-            }) {
-                Text(submitButtonText)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-        title = { Text(title) },
-        text = {
-            Column {
-                if (showHonestyMessage) {
-                    Text("Stay honest—entering fake steps only misleads you, not the app.")
-                    Spacer(Modifier.height(8.dp))
-                }
-                OutlinedTextField(
-                    value = input,
-                    onValueChange = { input = it },
-                    placeholder = { Text("Enter steps") }
-                )
-            }
-        }
-    )
 }
