@@ -41,7 +41,7 @@ fun NavGraph(
         }
         composable(Screen.Onboarding3.route) {
             OnboardingScreen3(
-                onGetStartedClicked = { navController.navigate("register") },
+                onGetStartedClicked = { navController.navigate(Screen.Register.route) },
                 onSkipClicked = { navController.navigate(Screen.Login.route) },
                 onLoginClicked = { navController.navigate(Screen.Login.route) }
             )
@@ -49,11 +49,11 @@ fun NavGraph(
         composable(Screen.Login.route) {
             LoginScreen(navController = navController)
         }
-        composable("register") {
+        composable(Screen.Register.route) {
             RegisterScreen(navController = navController)
         }
-        composable("forgot_password") {
-            ForgotPasswordScreen(navController = navController)
+        composable(Screen.ResetPassword.route) {
+            ResetPasswordScreen(navController = navController)
         }
         navigation(startDestination = Screen.PersonalDetails.route, route = "main_graph") {
             composable(Screen.PersonalDetails.route) {

@@ -1,6 +1,5 @@
 package com.simats.nutrisoul
 
-import android.util.Patterns
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -18,7 +17,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -94,8 +92,8 @@ fun RegisterScreen(navController: NavController, authViewModel: AuthViewModel = 
         else -> Unit
     }
 
-    val isEmailValid = Patterns.EMAIL_ADDRESS.matcher(email).matches()
-    val isPasswordValid = password.length >= 6
+    val isEmailValid = Validation.isEmailValid(email)
+    val isPasswordValid = Validation.isPasswordValid(password)
     val doPasswordsMatch = password == confirmPassword
     val isButtonEnabled = isEmailValid && isPasswordValid && doPasswordsMatch && authState !is AuthState.Loading
 
@@ -220,8 +218,9 @@ fun RegisterScreen(navController: NavController, authViewModel: AuthViewModel = 
                     isError = password.isNotEmpty() && !isPasswordValid
                 )
                 Text(
-                    "Password must be at least 6 characters.",
+                    Validation.passwordHint(),
                     style = MaterialTheme.typography.bodySmall,
+                    color = if (password.isNotEmpty() && !isPasswordValid) ErrorRed else Color.Gray,
                     modifier = Modifier.padding(start = 4.dp, top = 4.dp)
                 )
 
@@ -262,7 +261,7 @@ fun RegisterScreen(navController: NavController, authViewModel: AuthViewModel = 
                     )
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
                     onClick = { authViewModel.register(email, password) },

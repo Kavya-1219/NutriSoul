@@ -32,6 +32,7 @@ sealed class Screen(val route: String, val title: String, val icon: @Composable 
     object Onboarding2 : Screen("onboarding2", "Onboarding", { ImageIcons.Home })
     object Onboarding3 : Screen("onboarding3", "Onboarding", { ImageIcons.Home })
     object ForgotPassword : Screen("forgot_password", "Forgot Password", { ImageIcons.Home })
+    object ResetPassword : Screen("reset_password", "Reset Password", { ImageIcons.Home })
     object PersonalDetails : Screen("personal_details", "Personal Details", { ImageIcons.Home })
     object BodyDetails : Screen("body_details", "Body Details", { ImageIcons.Home })
     object Goals : Screen("goals", "Goals", { ImageIcons.Home })

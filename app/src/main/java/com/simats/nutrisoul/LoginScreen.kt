@@ -47,32 +47,30 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
     var isPasswordVisible by remember { mutableStateOf(false) }
     val authState by authViewModel.authState.collectAsState()
 
-    when (authState) {
-        is AuthState.Authenticated -> {
-            LaunchedEffect(Unit) {
-                navController.navigate(Screen.Home.route) {
-                    popUpTo(Screen.Login.route) { inclusive = true }
-                }
+    LaunchedEffect(authState) {
+        if (authState is AuthState.Authenticated) {
+            navController.navigate(Screen.Home.route) {
+                popUpTo(Screen.Login.route) { inclusive = true }
             }
         }
-        is AuthState.Error -> {
-            val error = (authState as AuthState.Error).message
-            AlertDialog(
-                onDismissRequest = { authViewModel.resetAuthState() },
-                containerColor = Color.White,
-                title = { Text("Unable to Sign In", style = MaterialTheme.typography.titleLarge) },
-                text = { Text(error) },
-                confirmButton = {
-                    Button(
-                        onClick = { authViewModel.resetAuthState() },
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
-                    ) {
-                        Text("Try Again", color = Color.White)
-                    }
+    }
+
+    if (authState is AuthState.Error) {
+        val error = (authState as AuthState.Error).message
+        AlertDialog(
+            onDismissRequest = { authViewModel.resetAuthState() },
+            containerColor = Color.White,
+            title = { Text("Unable to Sign In", style = MaterialTheme.typography.titleLarge) },
+            text = { Text(error) },
+            confirmButton = {
+                Button(
+                    onClick = { authViewModel.resetAuthState() },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                ) {
+                    Text("Try Again", color = Color.White)
                 }
-            )
-        }
-        else -> Unit
+            }
+        )
     }
 
     Box(
@@ -195,7 +193,7 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
 
                 TextButton(
                     onClick = {
-                        navController.navigate("forgot_password")
+                        navController.navigate(Screen.ResetPassword.route)
                     },
                     modifier = Modifier.align(Alignment.End)
                 ) {
@@ -236,7 +234,7 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
                     Text("Don't have an account?")
                     Spacer(modifier = Modifier.width(4.dp))
                     TextButton(onClick = {
-                        navController.navigate("register")
+                        navController.navigate(Screen.Register.route)
                     }) {
                         Text("Create Account", color = PrimaryGreen)
                     }
