@@ -1,15 +1,15 @@
 package com.simats.nutrisoul
 
 import android.Manifest
-import android.graphics.ImageDecoder
 import android.net.Uri
-import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,43 +20,53 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import java.io.File
+import java.io.FileOutputStream
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun ScanFoodScreen(viewModel: LogFoodViewModel = hiltViewModel()) {
     val context = LocalContext.current
-    val scanResult by viewModel.scanResult.collectAsState()
-    val suggestions by viewModel.suggestions.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview(),
         onResult = { bitmap ->
-            bitmap?.let { viewModel.analyzeFoodImage(it) }
+            bitmap?.let {
+                // Save bitmap to a temp file and get URI
+                val file = File(context.cacheDir, "temp_image_${System.currentTimeMillis()}.jpg")
+                FileOutputStream(file).use { out ->
+                    it.compress(android.graphics.Bitmap.CompressFormat.JPEG, 100, out)
+                }
+                viewModel.onImageSelected(Uri.fromFile(file))
+            }
         }
     )
 
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri: Uri? ->
-            uri?.let {
-                val source = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    ImageDecoder.createSource(context.contentResolver, it)
-                } else {
-                    TODO("VERSION.SDK_INT < P")
-                }
-                val bitmap = ImageDecoder.decodeBitmap(source)
-                viewModel.analyzeFoodImage(bitmap)
-            }
+            uri?.let { viewModel.onImageSelected(it) }
         }
     )
 
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        if (uiState.isLoading) {
+            CircularProgressIndicator()
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        uiState.error?.let {
+            Text(it, color = MaterialTheme.colorScheme.error)
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         Button(onClick = {
             if (cameraPermissionState.status.isGranted) {
                 takePictureLauncher.launch(null)
@@ -75,19 +85,17 @@ fun ScanFoodScreen(viewModel: LogFoodViewModel = hiltViewModel()) {
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        if (scanResult.isNotEmpty()) {
-            Text("Detected Foods:")
-            LazyColumn {
-                items(scanResult) { foodItem ->
-                    Text("- ${foodItem.name}")
+        if (uiState.nutrition.isNotEmpty()) {
+            Text("Detected Foods:", style = MaterialTheme.typography.titleMedium)
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                items(uiState.nutrition) { foodItem ->
+                    Text("- ${foodItem.name} (${foodItem.calories} kcal)")
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text("Suggestions:")
-            LazyColumn {
-                items(suggestions) { suggestion ->
+        } else if (uiState.detectedFoods.isNotEmpty()) {
+            Text("Detected Keywords:", style = MaterialTheme.typography.titleMedium)
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                items(uiState.detectedFoods) { suggestion ->
                     Text("- $suggestion")
                 }
             }

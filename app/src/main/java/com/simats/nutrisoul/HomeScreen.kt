@@ -47,20 +47,22 @@ fun HomeScreen(
     navController: NavController,
     userViewModel: UserViewModel,
     homeViewModel: HomeViewModel = hiltViewModel(),
-    stepsViewModel: StepsViewModel
+    stepsViewModel: StepsViewModel = hiltViewModel()
 ) {
     val user by userViewModel.user.collectAsStateWithLifecycle()
     val isLoading by userViewModel.isLoading.collectAsStateWithLifecycle()
-    val totals by homeViewModel.todayTotals.collectAsState()
+    val totals by homeViewModel.todayTotals.collectAsStateWithLifecycle()
     val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
     val stepsToday by stepsViewModel.todaySteps.collectAsStateWithLifecycle()
     val autoEnabled by stepsViewModel.autoEnabled.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     LaunchedEffect(autoEnabled) {
+        val intent = Intent(context, StepTrackingService::class.java)
         if (autoEnabled) {
-            val intent = Intent(context, StepTrackingService::class.java)
-            context.startService(intent)
+            context.startForegroundService(intent)
+        } else {
+            context.stopService(intent)
         }
     }
 

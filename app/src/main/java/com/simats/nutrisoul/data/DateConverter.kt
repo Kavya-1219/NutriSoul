@@ -1,6 +1,7 @@
 package com.simats.nutrisoul.data
 
 import androidx.room.TypeConverter
+import com.google.firebase.Timestamp
 import java.util.Date
 
 class DateConverter {
@@ -12,5 +13,15 @@ class DateConverter {
     @TypeConverter
     fun dateToTimestamp(date: Date?): Long? {
         return date?.time
+    }
+
+    @TypeConverter
+    fun fromLongToFirebaseTimestamp(value: Long?): Timestamp? {
+        return value?.let { Timestamp(Date(it)) }
+    }
+
+    @TypeConverter
+    fun firebaseTimestampToLong(timestamp: Timestamp?): Long? {
+        return timestamp?.toDate()?.time
     }
 }

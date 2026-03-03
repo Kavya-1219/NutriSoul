@@ -23,32 +23,28 @@ class StepsViewModel @Inject constructor(app: Application) : AndroidViewModel(ap
     private val store = StepsStore(app.applicationContext)
     private val sessionManager = SessionManager(app.applicationContext)
 
-    val todaySteps: StateFlow<Int> = sessionManager.currentUserEmailFlow().flatMapLatest { email ->
-        if (email != null) {
-            store.todayStepsFlow(email)
-        } else {
-            store.todayStepsFlow("guest")
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    private suspend fun currentUserKey(): String {
+        return sessionManager.currentUserEmailFlow().first() ?: "guest"
+    }
 
-    val autoEnabled: StateFlow<Boolean> = sessionManager.currentUserEmailFlow().flatMapLatest { email ->
-        if (email != null) {
-            store.autoEnabledFlow(email)
-        } else {
-            store.autoEnabledFlow("guest")
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val todaySteps: StateFlow<Int> =
+        sessionManager.currentUserEmailFlow()
+            .flatMapLatest { email -> store.todayStepsFlow(email ?: "guest") }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    val autoEnabled: StateFlow<Boolean> =
+        sessionManager.currentUserEmailFlow()
+            .flatMapLatest { email -> store.autoEnabledFlow(email ?: "guest") }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     fun setAutoTracking(enabled: Boolean) {
-        viewModelScope.launch {
-            val email = sessionManager.currentUserEmailFlow().first()
-            if (email != null) {
-                store.setAutoEnabled(email, enabled)
-            }
-        }
-
         val ctx = getApplication<Application>().applicationContext
         val intent = Intent(ctx, StepTrackingService::class.java)
+
+        viewModelScope.launch {
+            val userKey = currentUserKey()
+            store.setAutoEnabled(userKey, enabled)
+        }
 
         if (enabled) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -62,11 +58,18 @@ class StepsViewModel @Inject constructor(app: Application) : AndroidViewModel(ap
     }
 
     fun addManualSteps(steps: Int) {
+        if (steps <= 0) return
         viewModelScope.launch {
-            val email = sessionManager.currentUserEmailFlow().first()
-            if (email != null) {
-                store.addManualSteps(email, steps)
-            }
+            val userKey = currentUserKey()
+            store.addManualSteps(userKey, steps)
+        }
+    }
+
+    fun removeManualSteps(steps: Int) {
+        if (steps <= 0) return
+        viewModelScope.launch {
+            val userKey = currentUserKey()
+            store.removeManualSteps(userKey, steps)
         }
     }
 }

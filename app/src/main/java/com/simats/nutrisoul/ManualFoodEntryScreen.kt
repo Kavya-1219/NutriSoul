@@ -20,7 +20,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 
 @Composable
-fun ManualFoodEntryScreen(navController: NavController, viewModel: LogFoodViewModel = hiltViewModel()) {
+fun ManualFoodEntryScreen(
+    navController: NavController,
+    viewModel: ManualEntryViewModel = hiltViewModel()
+) {
     val foodName by viewModel.foodName.collectAsState()
     val quantity by viewModel.quantity.collectAsState()
     val caloriesPer100g by viewModel.caloriesPer100g.collectAsState()

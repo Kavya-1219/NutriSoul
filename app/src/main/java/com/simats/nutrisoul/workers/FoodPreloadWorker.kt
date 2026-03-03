@@ -21,7 +21,7 @@ class FoodPreloadWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
-            val foodItems = repository.searchFoods("apple", BuildConfig.USDA_API_KEY).first()
+            val foodItems = repository.searchFoods("apple", BuildConfig.NUTRITION_API_KEY).first()
             foodItems.forEach { repository.saveCustomFood(it) }
             Result.success()
         } catch (e: Exception) {

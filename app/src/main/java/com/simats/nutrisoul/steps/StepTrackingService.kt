@@ -12,40 +12,45 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Build
 import android.os.IBinder
-import android.util.Log
+import androidx.compose.ui.Alignment
 import androidx.core.app.NotificationCompat
+import com.simats.nutrisoul.R
 import com.simats.nutrisoul.data.SessionManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class StepTrackingService : Service(), SensorEventListener {
 
     private lateinit var sensorManager: SensorManager
-    private var stepSensor: Sensor? = null
+    private var stepCounter: Sensor? = null
+
     private lateinit var store: StepsStore
     private lateinit var sessionManager: SessionManager
-    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     override fun onCreate() {
         super.onCreate()
 
         store = StepsStore(applicationContext)
         sessionManager = SessionManager(applicationContext)
-        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
 
-        startForeground(1001, buildNotification("Auto tracking enabled"))
+        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        stepCounter = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+
+        startForeground(NOTIFICATION_ID, buildNotification("Tracking your steps..."))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (stepSensor == null) {
+        if (stepCounter == null) {
             stopSelf()
             return START_NOT_STICKY
         }
-        sensorManager.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_UI)
+        sensorManager.registerListener(this, stepCounter, SensorManager.SENSOR_DELAY_UI)
         return START_STICKY
     }
 
@@ -56,12 +61,17 @@ class StepTrackingService : Service(), SensorEventListener {
 
     override fun onSensorChanged(event: SensorEvent) {
         val totalSinceBoot = event.values.firstOrNull() ?: return
-        Log.d("STEP_SERVICE", "totalSinceBoot=$totalSinceBoot")
-        serviceScope.launch {
-            val userEmail = sessionManager.currentUserEmailFlow().first()
-            if (userEmail != null) {
-                store.updateFromStepCounter(userEmail, totalSinceBoot)
-            }
+
+        scope.launch {
+            val email = sessionManager.currentUserEmailFlow().first() ?: return@launch
+
+            // Convert "since boot" counter -> "today steps"
+            // StepsStore must handle baseline + daily reset correctly
+            // In onSensorChanged
+            store.updateFromStepCounter(
+                user = email,
+                totalSinceBoot = totalSinceBoot
+            )
         }
     }
 
@@ -69,12 +79,11 @@ class StepTrackingService : Service(), SensorEventListener {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun buildNotification(text: String): Notification {
-        val channelId = "steps_tracking"
-
+        val channelId = CHANNEL_ID
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
-                "Steps Tracking",
+                "Step Tracking",
                 NotificationManager.IMPORTANCE_LOW
             )
             val nm = getSystemService(NotificationManager::class.java)
@@ -84,8 +93,13 @@ class StepTrackingService : Service(), SensorEventListener {
         return NotificationCompat.Builder(this, channelId)
             .setContentTitle("NutriSoul")
             .setContentText(text)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.nutrisoul) // use your app icon
             .setOngoing(true)
             .build()
+    }
+
+    companion object {
+        private const val CHANNEL_ID = "steps_tracking"
+        private const val NOTIFICATION_ID = 1001
     }
 }

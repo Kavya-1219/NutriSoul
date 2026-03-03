@@ -1,3 +1,4 @@
+import java.util.Properties
 
 plugins {
     id("com.android.application")
@@ -5,6 +6,13 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
     id("com.google.gms.google-services")
+}
+
+// Read API key from local.properties
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { localProperties.load(it) }
 }
 
 android {
@@ -22,6 +30,8 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        // Expose the API key from local.properties as a BuildConfig field
+        buildConfigField("String", "NUTRITION_API_KEY", "\"${localProperties.getProperty("NUTRITION_API_KEY", "")}\"")
     }
 
     buildTypes {
@@ -43,9 +53,6 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
-    }
-    defaultConfig {
-        buildConfigField("String", "USDA_API_KEY", "\"DEMO_KEY\"")
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.10"
@@ -95,6 +102,8 @@ dependencies {
     implementation("org.tensorflow:tensorflow-lite-gpu:2.12.0")
     implementation("com.google.accompanist:accompanist-permissions:0.31.5-beta")
     implementation("androidx.compose.foundation:foundation-layout-android:1.6.7")
+    implementation("com.google.mlkit:text-recognition:16.0.0")
+    implementation("com.google.mlkit:image-labeling:17.0.9")
 
 
     // CameraX

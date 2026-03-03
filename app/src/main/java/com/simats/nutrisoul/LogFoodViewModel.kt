@@ -1,32 +1,56 @@
 package com.simats.nutrisoul
 
-import android.graphics.Bitmap
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.net.Uri
+import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.simats.nutrisoul.data.FoodRepository
+import com.simats.nutrisoul.data.models.DailyTotals
 import com.simats.nutrisoul.data.models.FoodItem
 import com.simats.nutrisoul.data.models.FoodLog
-import com.simats.nutrisoul.data.models.DailyTotals
 import com.simats.nutrisoul.ui.DailyTotalsUi
 import com.simats.nutrisoul.ui.FoodItemUi
-import com.simats.nutrisoul.ui.UserTarget
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.time.LocalDate
 import java.util.Calendar
 import javax.inject.Inject
 
+data class LogFoodUiState(
+    val isLoading: Boolean = false,
+    val imageUri: Uri? = null,
+    val extractedText: String = "",
+    val detectedFoods: List<String> = emptyList(),
+    val nutrition: List<FoodItemUi> = emptyList(),
+    val error: String? = null
+)
+
 @OptIn(FlowPreview::class)
 @HiltViewModel
-class LogFoodViewModel @Inject constructor(private val repository: FoodRepository) : ViewModel() {
+class LogFoodViewModel @Inject constructor(
+    private val repository: FoodRepository,
+    private val app: Application
+) : AndroidViewModel(app) {
 
     val todayTotals: StateFlow<DailyTotalsUi> =
         repository.observeTodayTotals()
@@ -40,9 +64,12 @@ class LogFoodViewModel @Inject constructor(private val repository: FoodRepositor
             }
             .stateIn(
                 scope = viewModelScope,
-                started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000),
+                started = SharingStarted.WhileSubscribed(5_000),
                 initialValue = DailyTotalsUi()
             )
+
+    private val _uiState = MutableStateFlow(LogFoodUiState())
+    val uiState: StateFlow<LogFoodUiState> = _uiState.asStateFlow()
 
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query
@@ -50,29 +77,26 @@ class LogFoodViewModel @Inject constructor(private val repository: FoodRepositor
     private val _searchResults = MutableStateFlow<List<FoodItemUi>>(emptyList())
     val searchResults: StateFlow<List<FoodItemUi>> = _searchResults
 
-    private val _calculatedNutrition = MutableStateFlow<FoodLog?>(null)
-    val calculatedNutrition: StateFlow<FoodLog?> = _calculatedNutrition
-
-    private val _scanResult = MutableStateFlow<List<FoodItem>>(emptyList())
-    val scanResult: StateFlow<List<FoodItem>> = _scanResult
-
-    private val _suggestions = MutableStateFlow<List<String>>(emptyList())
-    val suggestions: StateFlow<List<String>> = _suggestions
-
-    val foodName = MutableStateFlow("")
-    val quantity = MutableStateFlow("")
-    val caloriesPer100g = MutableStateFlow("")
-    val proteinPer100g = MutableStateFlow("")
-    val carbsPer100g = MutableStateFlow("")
-    val fatsPer100g = MutableStateFlow("")
-
     init {
         viewModelScope.launch {
             _query
                 .debounce(300)
-                .filter { it.length > 2 }
-                .flatMapLatest { repository.searchFoods(it, "YOUR_API_KEY") }
-                .collect { _searchResults.value = it.map(::toFoodItemUi) }
+                .map { it.trim() }
+                .distinctUntilChanged()
+                .filter { it.length >= 2 }
+                .flatMapLatest { q: String ->
+                    repository.searchFoods(q, BuildConfig.NUTRITION_API_KEY)
+                        .catch { e ->
+                            Log.e("LogFood", "Search error", e)
+                            emit(emptyList<FoodItem>())
+                        }
+                }
+                .map { list: List<FoodItem> ->
+                    list.map(::toFoodItemUi)
+                }
+                .collect { uiList: List<FoodItemUi> ->
+                    _searchResults.value = uiList
+                }
         }
     }
 
@@ -80,105 +104,117 @@ class LogFoodViewModel @Inject constructor(private val repository: FoodRepositor
         _query.value = query
     }
 
+    fun clearScanState() {
+        _uiState.value = LogFoodUiState()
+    }
+
+    fun onImageSelected(uri: Uri) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    imageUri = uri,
+                    isLoading = true,
+                    error = null,
+                    extractedText = "",
+                    detectedFoods = emptyList(),
+                    nutrition = emptyList()
+                )
+            }
+
+            try {
+                val (text, foodsDetectedByOcr) = withContext(Dispatchers.Default) {
+                    val t = OcrUtil.recognizeText(getApplication(), uri)
+                    val f = FoodParser.extractFoods(t)
+                    t to f
+                }
+
+                var finalFoods = foodsDetectedByOcr
+
+                // If OCR found nothing, use ML Kit Image Labeling
+                if (finalFoods.isEmpty()) {
+                    val labels = LabelUtil.labelImage(getApplication(), uri)
+                    // Map labels to our known food candidates or just use the top labels
+                    finalFoods = labels.take(3) 
+                    Log.d("LogFood", "OCR empty, ML labels: $finalFoods")
+                }
+
+                if (finalFoods.isEmpty()) {
+                    _uiState.update {
+                        it.copy(isLoading = false, extractedText = text, error = "No food items detected.")
+                    }
+                    return@launch
+                }
+
+                val apiKey = BuildConfig.NUTRITION_API_KEY
+
+                val foundItems: List<FoodItem> = coroutineScope {
+                    finalFoods.distinct().take(5).map { foodName ->
+                        async(Dispatchers.IO) {
+                            val list: List<FoodItem> = repository.searchFoods(foodName, apiKey).first()
+                            list.firstOrNull()
+                        }
+                    }.awaitAll().filterNotNull()
+                }
+
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        extractedText = text,
+                        detectedFoods = finalFoods,
+                        nutrition = foundItems.map(::toFoodItemUi),
+                        error = if (foundItems.isEmpty()) "Found $finalFoods but couldn't fetch nutrition details." else null
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("LogFood", "Scan failed", e)
+                _uiState.update { it.copy(isLoading = false, error = e.message ?: "Scan failed") }
+            }
+        }
+    }
+
     fun addFood(foodItem: FoodItemUi, quantity: Double) {
         viewModelScope.launch {
+            val scale = if (foodItem.servingQuantity != 0.0) quantity / foodItem.servingQuantity else 0.0
             val foodLog = FoodLog(
                 name = foodItem.name,
-                calories = foodItem.calories * quantity / 100,
-                protein = foodItem.protein * quantity / 100,
-                carbs = foodItem.carbs * quantity / 100,
-                fats = foodItem.fat * quantity / 100,
+                calories = foodItem.calories * scale,
+                protein = foodItem.protein * scale,
+                carbs = foodItem.carbs * scale,
+                fats = foodItem.fat * scale,
                 quantity = quantity,
-                mealType = getMealType()
+                mealType = getMealType(),
+                date = LocalDate.now()
             )
             repository.addFoodToDailyIntake(foodLog)
         }
     }
 
-    fun calculateAndLogFood() {
+    fun addManualFood(
+        name: String,
+        quantity: Double,
+        unit: String,
+        calories: Double,
+        protein: Double,
+        carbs: Double,
+        fats: Double
+    ) {
         viewModelScope.launch {
-            val quantityValue = quantity.value.toDoubleOrNull() ?: return@launch
-            val caloriesValue = caloriesPer100g.value.toDoubleOrNull() ?: return@launch
-            val proteinValue = proteinPer100g.value.toDoubleOrNull() ?: return@launch
-            val carbsValue = carbsPer100g.value.toDoubleOrNull() ?: return@launch
-            val fatsValue = fatsPer100g.value.toDoubleOrNull() ?: return@launch
-
-            val foodItem = FoodItem(
-                name = foodName.value,
-                calories = caloriesValue,
-                protein = proteinValue,
-                carbs = carbsValue,
-                fats = fatsValue
-            )
-
             val foodLog = FoodLog(
-                name = foodName.value,
-                calories = caloriesValue * quantityValue / 100,
-                protein = proteinValue * quantityValue / 100,
-                carbs = carbsValue * quantityValue / 100,
-                fats = fatsValue * quantityValue / 100,
-                quantity = quantityValue,
-                mealType = "Manual Entry"
+                name = name,
+                calories = calories,
+                protein = protein,
+                carbs = carbs,
+                fats = fats,
+                quantity = quantity,
+                mealType = "Manual Entry",
+                date = LocalDate.now()
             )
-
-            repository.saveCustomFood(foodItem)
             repository.addFoodToDailyIntake(foodLog)
-            _calculatedNutrition.value = foodLog
         }
     }
 
-    fun analyzeFoodImage(bitmap: Bitmap) {
-        viewModelScope.launch {
-            // Placeholder for food analysis
-            val detectedFoods = listOf("carrot")
-
-            val foodItems = detectedFoods.mapNotNull { foodName ->
-                repository.searchFoods(foodName, "YOUR_API_KEY").first().firstOrNull()
-            }
-            _scanResult.value = foodItems
-
-            foodItems.forEach { foodItem ->
-                val foodLog = FoodLog(
-                    name = foodItem.name,
-                    calories = foodItem.calories,
-                    protein = foodItem.protein,
-                    carbs = foodItem.carbs,
-                    fats = foodItem.fats,
-                    quantity = 100.0, // Default to 100g
-                    mealType = "Scan"
-                )
-                repository.addFoodToDailyIntake(foodLog)
-            }
-
-            generateSuggestions()
-        }
-    }
-
-    private fun generateSuggestions() {
-        viewModelScope.launch {
-            val totals = repository.observeTodayTotals().first()
-            val target = UserTarget() // Assuming a default target
-
-            val suggestions = mutableListOf<String>()
-
-            if ((totals.protein ?: 0.0) < target.protein) {
-                suggestions.add("Increase your protein intake.")
-            }
-
-            if ((totals.calories ?: 0.0) > target.calories) {
-                suggestions.add("You have exceeded your calorie target. Consider reducing high-calorie foods.")
-            }
-
-            if ((totals.carbs ?: 0.0) > target.carbs) {
-                suggestions.add("Your carb intake is high. Consider reducing carb-heavy items.")
-            }
-
-            if (target.calories - (totals.calories ?: 0.0) > 200) {
-                suggestions.add("You have room for more calories. Consider adding a healthy snack.")
-            }
-
-            _suggestions.value = suggestions
-        }
+    fun getTargetCaloriesOrDefault(default: Double): Double {
+        return default
     }
 
     private fun getMealType(): String {
@@ -193,13 +229,13 @@ class LogFoodViewModel @Inject constructor(private val repository: FoodRepositor
 
     private fun toFoodItemUi(foodItem: FoodItem): FoodItemUi {
         return FoodItemUi(
-            id = 0, // Not available in FoodItem
+            id = 0,
             name = foodItem.name,
             calories = foodItem.calories,
             protein = foodItem.protein,
             carbs = foodItem.carbs,
             fat = foodItem.fats,
-            servingQuantity = 100.0, // Default to 100g
+            servingQuantity = 100.0,
             servingUnit = "g"
         )
     }

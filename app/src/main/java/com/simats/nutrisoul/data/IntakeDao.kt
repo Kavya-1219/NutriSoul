@@ -23,10 +23,10 @@ interface IntakeDao {
 
     @Query("""
         SELECT 
-            SUM(calories) as calories,
-            SUM(protein) as protein,
-            SUM(carbs) as carbs,
-            SUM(fats) as fats
+            IFNULL(SUM(calories), 0) as calories,
+            IFNULL(SUM(protein), 0) as protein,
+            IFNULL(SUM(carbs), 0) as carbs,
+            IFNULL(SUM(fats), 0) as fats
         FROM daily_intake
         WHERE date = :date
     """)
