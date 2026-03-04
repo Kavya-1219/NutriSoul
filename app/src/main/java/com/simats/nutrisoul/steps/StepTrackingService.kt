@@ -12,10 +12,12 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Build
 import android.os.IBinder
-import androidx.compose.ui.Alignment
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.simats.nutrisoul.R
+import com.simats.nutrisoul.data.AppDatabase
 import com.simats.nutrisoul.data.SessionManager
+import com.simats.nutrisoul.data.StepsEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -30,6 +32,7 @@ class StepTrackingService : Service(), SensorEventListener {
 
     private lateinit var store: StepsStore
     private lateinit var sessionManager: SessionManager
+    private lateinit var database: AppDatabase
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -38,6 +41,7 @@ class StepTrackingService : Service(), SensorEventListener {
 
         store = StepsStore(applicationContext)
         sessionManager = SessionManager(applicationContext)
+        database = AppDatabase.getDatabase(applicationContext)
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         stepCounter = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
@@ -46,11 +50,12 @@ class StepTrackingService : Service(), SensorEventListener {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (stepCounter == null) {
+        val sensor = stepCounter
+        if (sensor == null) {
             stopSelf()
             return START_NOT_STICKY
         }
-        sensorManager.registerListener(this, stepCounter, SensorManager.SENSOR_DELAY_UI)
+        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_UI)
         return START_STICKY
     }
 
@@ -60,18 +65,24 @@ class StepTrackingService : Service(), SensorEventListener {
     }
 
     override fun onSensorChanged(event: SensorEvent) {
-        val totalSinceBoot = event.values.firstOrNull() ?: return
+        // ✅ Treat step counter as Long to avoid float rounding quirks
+        val totalSinceBoot = event.values.firstOrNull()?.toLong() ?: return
+        Log.d("STEPS", "sensor totalSinceBoot=${totalSinceBoot}")
 
         scope.launch {
-            val email = sessionManager.currentUserEmailFlow().first() ?: return@launch
-
-            // Convert "since boot" counter -> "today steps"
-            // StepsStore must handle baseline + daily reset correctly
-            // In onSensorChanged
-            store.updateFromStepCounter(
-                user = email,
-                totalSinceBoot = totalSinceBoot
-            )
+            val email = sessionManager.currentUserEmailFlow().first() ?: "guest"
+            val resetData = store.updateFromStepCounter(user = email, totalSinceBoot = totalSinceBoot)
+            
+            // If a new day started, save the previous day's data to the database
+            resetData?.let { (date, steps) ->
+                database.stepsDao().upsert(
+                    StepsEntity(
+                        date = LocalDate.parse(date),
+                        steps = steps.toLong(),
+                        goal = 10000 // Default goal, could be fetched from preferences
+                    )
+                )
+            }
         }
     }
 
@@ -79,10 +90,9 @@ class StepTrackingService : Service(), SensorEventListener {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun buildNotification(text: String): Notification {
-        val channelId = CHANNEL_ID
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                channelId,
+                CHANNEL_ID,
                 "Step Tracking",
                 NotificationManager.IMPORTANCE_LOW
             )
@@ -90,10 +100,10 @@ class StepTrackingService : Service(), SensorEventListener {
             nm.createNotificationChannel(channel)
         }
 
-        return NotificationCompat.Builder(this, channelId)
+        return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("NutriSoul")
             .setContentText(text)
-            .setSmallIcon(R.drawable.nutrisoul) // use your app icon
+            .setSmallIcon(R.drawable.nutrisoul)
             .setOngoing(true)
             .build()
     }

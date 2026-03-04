@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -40,6 +41,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.simats.nutrisoul.ui.steps.AddStepsModal
+import com.simats.nutrisoul.ui.steps.RemoveStepsModal
 import com.simats.nutrisoul.ui.steps.StepsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,18 +51,31 @@ fun StepsTrackingScreen(
     viewModel: StepsViewModel = hiltViewModel()
 ) {
     val todaySteps by viewModel.todaySteps.collectAsStateWithLifecycle()
+    val weeklyAvgSteps by viewModel.weeklyAverageSteps.collectAsStateWithLifecycle()
     val autoEnabled by viewModel.autoEnabled.collectAsStateWithLifecycle()
     var showAddSteps by remember { mutableStateOf(false) }
+    var showRemoveSteps by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val needsActivity = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+        val needsNotif = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+
+        val activityGranted = !needsActivity || (permissions[Manifest.permission.ACTIVITY_RECOGNITION] == true)
+        val notificationGranted = !needsNotif || (permissions[Manifest.permission.POST_NOTIFICATIONS] == true)
+
+        if (activityGranted && notificationGranted) {
             viewModel.setAutoTracking(true)
         } else {
             viewModel.setAutoTracking(false)
-            Toast.makeText(context, "Permission required to enable auto tracking", Toast.LENGTH_SHORT).show()
+            val msg = when {
+                !activityGranted && !notificationGranted -> "Activity + Notification permissions required"
+                !activityGranted -> "Activity permission required"
+                else -> "Notification permission required"
+            }
+            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -81,11 +96,21 @@ fun StepsTrackingScreen(
 
             StepsContent(
                 todaySteps = todaySteps,
+                weeklyAvgSteps = weeklyAvgSteps,
                 autoEnabled = autoEnabled,
+                isSensorAvailable = viewModel.isSensorAvailable,
                 onToggleAutoTracking = { checked ->
                     if (checked) {
+                        val permissions = mutableListOf<String>()
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                            permissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+                            permissions.add(Manifest.permission.ACTIVITY_RECOGNITION)
+                        }
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+
+                        if (permissions.isNotEmpty()) {
+                            permissionLauncher.launch(permissions.toTypedArray())
                         } else {
                             viewModel.setAutoTracking(true)
                         }
@@ -94,10 +119,12 @@ fun StepsTrackingScreen(
                     }
                 },
                 onAddStepsClicked = { showAddSteps = true },
+                onRemoveStepsClicked = { showRemoveSteps = true }
             )
 
             Spacer(Modifier.height(30.dp))
         }
+
         if (showAddSteps) {
             AddStepsModal(
                 onDismiss = { showAddSteps = false },
@@ -105,6 +132,17 @@ fun StepsTrackingScreen(
                     val v = input.toIntOrNull() ?: 0
                     viewModel.addManualSteps(v)
                     showAddSteps = false
+                }
+            )
+        }
+
+        if (showRemoveSteps) {
+            RemoveStepsModal(
+                onDismiss = { showRemoveSteps = false },
+                onRemoveSteps = { input ->
+                    val v = input.toIntOrNull() ?: 0
+                    viewModel.removeManualSteps(v)
+                    showRemoveSteps = false
                 }
             )
         }
@@ -161,9 +199,12 @@ private fun HeaderSection(onBack: () -> Unit) {
 @Composable
 private fun StepsContent(
     todaySteps: Int,
+    weeklyAvgSteps: Long,
     autoEnabled: Boolean,
+    isSensorAvailable: Boolean,
     onToggleAutoTracking: (Boolean) -> Unit,
     onAddStepsClicked: () -> Unit,
+    onRemoveStepsClicked: () -> Unit,
 ) {
     val calories = (todaySteps * 0.04).toInt()
     val distance = todaySteps * 0.000762
@@ -178,12 +219,12 @@ private fun StepsContent(
 
         ProgressCard(todaySteps.toLong(), 10000)
 
-        StatsCard(calories, distance, 0)
+        StatsCard(calories, distance, weeklyAvgSteps)
 
         AutoTrackingCard(
             enabled = autoEnabled,
             onToggle = onToggleAutoTracking,
-            disabled = false
+            disabled = !isSensorAvailable
         )
 
         Button(
@@ -211,6 +252,23 @@ private fun StepsContent(
                 }
             }
         }
+
+        Button(
+            onClick = onRemoveStepsClicked,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(62.dp),
+            shape = RoundedCornerShape(20.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, Color(0xFFE5E7EB))
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("➖", fontSize = 18.sp)
+                Spacer(Modifier.width(10.dp))
+                Text("Remove Steps", color = Color(0xFF065F46), fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            }
+        }
+
         TipsCard()
     }
 }
@@ -356,7 +414,7 @@ private fun AutoTrackingCard(
             Column(Modifier.weight(1f)) {
                 Text("Auto Tracking", fontWeight = FontWeight.SemiBold)
                 Text(
-                    if (disabled) "Grant permission to enable"
+                    if (disabled) "Step sensor not available on this device"
                     else if (enabled) "Tracking is ON"
                     else "Tracking is OFF",
                     color = Color(0xFF6B7280),
