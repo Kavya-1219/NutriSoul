@@ -153,13 +153,26 @@ class LogFoodViewModel @Inject constructor(
                     }
                 }
 
+                // ✅ Professional Fallback: If online search fails, use local suggested foods
+                val localFallback = finalFoods
+                    .flatMap { key ->
+                        suggestedFoods.filter { it.name.contains(key, ignoreCase = true) }
+                    }
+                    .distinctBy { it.name }
+                    .take(5)
+
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         extractedText = text,
                         detectedFoods = finalFoods,
-                        nutrition = foundItems,
-                        error = if (foundItems.isEmpty()) "Found $finalFoods but couldn't fetch nutrition details." else null
+                        nutrition = if (foundItems.isNotEmpty())
+                            foundItems
+                        else
+                            localFallback,
+                        error = if (foundItems.isEmpty() && localFallback.isEmpty())
+                            "Found $finalFoods but couldn't fetch nutrition details."
+                        else null
                     )
                 }
             } catch (e: Exception) {
