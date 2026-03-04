@@ -11,16 +11,19 @@ fun FoodSearchResponse.toFoodItems(): List<FoodItem> {
         val nutrients = apiFoodItem.foodNutrients.associate { it.nutrientName to it.value }
         FoodItem(
             name = apiFoodItem.description,
-            calories = nutrients["Energy"] ?: 0.0,
-            protein = nutrients["Protein"] ?: 0.0,
-            carbs = nutrients["Carbohydrate, by difference"] ?: 0.0,
-            fats = nutrients["Total lipid (fat)"] ?: 0.0
+            caloriesPer100g = nutrients["Energy"] ?: 0.0,
+            proteinPer100g = nutrients["Protein"] ?: 0.0,
+            carbsPer100g = nutrients["Carbohydrate, by difference"] ?: 0.0,
+            fatsPer100g = nutrients["Total lipid (fat)"] ?: 0.0,
+            servingQuantity = 100.0,
+            servingUnit = "g"
         )
     }
 }
 
 fun FoodLog.toEntity(): IntakeEntity {
     return IntakeEntity(
+        id = id,
         name = name,
         calories = calories,
         protein = protein,
@@ -28,16 +31,16 @@ fun FoodLog.toEntity(): IntakeEntity {
         fats = fats,
         mealType = mealType,
         date = date,
-        quantity = 1.0 // Defaulting quantity to 1.0, you can change this as needed
+        quantity = quantity
     )
 }
 
 fun FoodItem.toEntity(): CustomFoodEntity {
     return CustomFoodEntity(
         name = name,
-        calories = calories,
-        protein = protein,
-        carbs = carbs,
-        fats = fats
+        calories = caloriesPer100g,
+        protein = proteinPer100g,
+        carbs = carbsPer100g,
+        fats = fatsPer100g
     )
 }

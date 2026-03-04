@@ -4,6 +4,7 @@ import com.simats.nutrisoul.data.IntakeEntity
 import java.time.LocalDate
 
 data class FoodLog(
+    val id: Long = 0,
     val name: String,
     val calories: Double,
     val protein: Double,
@@ -15,6 +16,7 @@ data class FoodLog(
 )
 
 fun FoodLog.toIntakeEntity() = IntakeEntity(
+    id = id,
     name = name,
     calories = calories,
     protein = protein,
@@ -26,6 +28,7 @@ fun FoodLog.toIntakeEntity() = IntakeEntity(
 )
 
 fun IntakeEntity.toFoodLog() = FoodLog(
+    id = id,
     name = name,
     calories = calories,
     protein = protein,

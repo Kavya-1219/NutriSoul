@@ -16,7 +16,6 @@ fun NavGraph(
 ) {
     val userViewModel: UserViewModel = hiltViewModel()
     val logFoodViewModel: LogFoodViewModel = hiltViewModel()
-    val manualEntryViewModel: ManualEntryViewModel = hiltViewModel()
     val homeViewModel: HomeViewModel = hiltViewModel()
     val mealPlanViewModel: MealPlanViewModel = hiltViewModel()
     val historyViewModel: HistoryViewModel = hiltViewModel()
@@ -109,9 +108,6 @@ fun NavGraph(
                 LogFoodScreen(navController = navController, viewModel = logFoodViewModel)
             }
             
-            composable(Screen.ManualFoodEntry.route) {
-                ManualFoodEntryScreen(navController = navController, viewModel = manualEntryViewModel)
-            }
             composable(Screen.MealPlan.route) {
                 TodaysMealPlanScreen(navController = navController, viewModel = mealPlanViewModel)
             }

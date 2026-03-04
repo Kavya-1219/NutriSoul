@@ -1,6 +1,9 @@
 package com.simats.nutrisoul
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -28,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -46,7 +50,6 @@ fun LogFoodScreen(
     val todayTotals by viewModel.todayTotals.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
     val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
-    val localFoodDatabase = suggestedFoods
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
@@ -58,6 +61,13 @@ fun LogFoodScreen(
     val progressRaw = if (targetCalories > 0) (todayTotals.calories / targetCalories).toFloat() else 0f
     val progress = progressRaw.coerceIn(0f, 1f)
     val animatedProgress by animateFloatAsState(progress, label = "")
+
+    // --- Search Logic with Local Fallback ---
+    val localMatches = remember(query) {
+        if (query.length < 2) emptyList()
+        else suggestedFoods.filter { it.name.contains(query, ignoreCase = true) }
+    }
+    // ----------------------------------------
 
     // --- Camera & Gallery Launchers ---
     val pickImage = rememberLauncherForActivityResult(
@@ -80,10 +90,15 @@ fun LogFoodScreen(
         }
     }
 
-    fun createTempImageUri(): Uri {
-        val dir = context.externalCacheDir ?: context.cacheDir
-        val file = File(dir, "scan_${System.currentTimeMillis()}.jpg")
-        return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            tempUri = createTempImageUri(context)
+            takePicture.launch(tempUri)
+        } else {
+            Toast.makeText(context, "Camera permission is required to scan food.", Toast.LENGTH_SHORT).show()
+        }
     }
     // --------------------------------
 
@@ -101,7 +116,7 @@ fun LogFoodScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp)
-                    .offset(y = (-60).dp),
+                    .offset(y = (-35).dp), // Fixed offset for better spacing
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
 
@@ -125,8 +140,15 @@ fun LogFoodScreen(
                         icon = Icons.Default.CameraAlt,
                         gradient = Brush.horizontalGradient(listOf(Color(0xFF8B5CF6), Color(0xFF4F46E5))),
                         onClick = {
-                            tempUri = createTempImageUri()
-                            takePicture.launch(tempUri)
+                            when (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)) {
+                                PackageManager.PERMISSION_GRANTED -> {
+                                    tempUri = createTempImageUri(context)
+                                    takePicture.launch(tempUri)
+                                }
+                                else -> {
+                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                }
+                            }
                         }
                     )
 
@@ -142,7 +164,7 @@ fun LogFoodScreen(
 
                 Button(
                     onClick = { showManualSheet = true },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color(0xFF1F2937)),
                     elevation = ButtonDefaults.buttonElevation(4.dp)
@@ -155,9 +177,9 @@ fun LogFoodScreen(
                 FoodSearchCard(
                     query = query,
                     onQueryChanged = viewModel::onQueryChanged,
-                    results = searchResults,
+                    searchResults = searchResults,
+                    localMatches = localMatches,
                     onFoodPick = { selectedFood = it },
-                    localFoods = localFoodDatabase,
                     onQuickAddLocal = { item ->
                         viewModel.addFood(item, item.servingQuantity)
                     }
@@ -194,7 +216,6 @@ fun LogFoodScreen(
             )
         }
 
-        // --- Scan Results Bottom Sheet ---
         if (showScanResults) {
             ScanResultBottomSheet(
                 uiState = uiState,
@@ -214,6 +235,14 @@ fun LogFoodScreen(
             )
         }
     }
+}
+
+private fun createTempImageUri(context: android.content.Context): Uri {
+    val dir = context.externalCacheDir ?: context.cacheDir
+    val file = File(dir, "scan_${System.currentTimeMillis()}.jpg").apply { 
+        createNewFile()
+    }
+    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -258,7 +287,7 @@ fun ScanResultBottomSheet(
                 if (uiState.nutrition.isNotEmpty()) {
                     Text("We found these items:", fontWeight = FontWeight.Bold)
                     LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
-                        items(uiState.nutrition) { item ->
+                        items(uiState.nutrition, key = { it.id }) { item ->
                             SearchResultRow(item = item, onClick = { onLogFood(item, item.servingQuantity) })
                         }
                     }
@@ -410,7 +439,7 @@ private fun GradientActionCard(
 ) {
     Card(
         modifier = modifier
-            .height(140.dp)
+            .height(160.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(22.dp),
         elevation = CardDefaults.cardElevation(8.dp),
@@ -437,9 +466,9 @@ private fun GradientActionCard(
 private fun FoodSearchCard(
     query: String,
     onQueryChanged: (String) -> Unit,
-    results: List<FoodItemUi>,
+    searchResults: List<FoodItemUi>,
+    localMatches: List<FoodItemUi>,
     onFoodPick: (FoodItemUi) -> Unit,
-    localFoods: List<FoodItemUi>,
     onQuickAddLocal: (FoodItemUi) -> Unit
 ) {
     Card(
@@ -460,7 +489,7 @@ private fun FoodSearchCard(
             OutlinedTextField(
                 value = query,
                 onValueChange = onQueryChanged,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(56.dp),
                 placeholder = { Text("Search for food...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
                 shape = RoundedCornerShape(14.dp),
@@ -470,14 +499,27 @@ private fun FoodSearchCard(
             Spacer(Modifier.height(12.dp))
 
             if (query.length >= 2) {
-                if (results.isEmpty()) {
-                    Text("No foods found", color = Color(0xFF6B7280), modifier = Modifier.padding(8.dp))
+                if (searchResults.isEmpty()) {
+                    if (localMatches.isEmpty()) {
+                        Text("No online match found", color = Color(0xFF6B7280), fontSize = 12.sp, modifier = Modifier.padding(8.dp))
+                    } else {
+                        Text("No online match, showing local results", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(8.dp))
+                        Spacer(Modifier.height(4.dp))
+                        LazyColumn(
+                            modifier = Modifier.heightIn(max = 260.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(localMatches, key = { it.id }) { item ->
+                                SearchResultRow(item, isLocal = true, onClick = { onFoodPick(item) }, onQuickAdd = { onQuickAddLocal(item) })
+                            }
+                        }
+                    }
                 } else {
                     LazyColumn(
                         modifier = Modifier.heightIn(max = 260.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(results) { item ->
+                        items(searchResults, key = { it.id }) { item ->
                             SearchResultRow(item, onClick = { onFoodPick(item) })
                         }
                     }
@@ -489,7 +531,7 @@ private fun FoodSearchCard(
                     modifier = Modifier.heightIn(max = 260.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(localFoods) { item ->
+                    items(suggestedFoods, key = { it.id }) { item ->
                         SearchResultRow(item, isLocal = true, onClick = { onFoodPick(item) }, onQuickAdd = { onQuickAddLocal(item) })
                     }
                 }
@@ -525,15 +567,29 @@ fun SearchResultRow(
 }
 
 val suggestedFoods: List<FoodItemUi> = listOf(
-    FoodItemUi(0, "Idli", 39.0, 1.4, 7.6, 0.2, 1.0, "piece"),
-    FoodItemUi(0, "Dosa", 168.0, 4.0, 29.0, 3.7, 1.0, "piece"),
-    FoodItemUi(0, "Chapati", 120.0, 3.5, 18.0, 3.0, 1.0, "piece"),
-    FoodItemUi(0, "Rice (cooked)", 130.0, 2.7, 28.0, 0.3, 100.0, "g"),
-    FoodItemUi(0, "Dal", 116.0, 9.0, 20.0, 0.4, 100.0, "g"),
-    FoodItemUi(0, "Egg (boiled)", 78.0, 6.0, 0.6, 5.3, 1.0, "egg"),
-    FoodItemUi(0, "Milk", 60.0, 3.2, 4.8, 3.3, 100.0, "ml"),
-    FoodItemUi(0, "Banana", 89.0, 1.1, 23.0, 0.3, 100.0, "g"),
-    FoodItemUi(0, "Apple", 52.0, 0.3, 14.0, 0.2, 100.0, "g"),
-    FoodItemUi(0, "Chicken breast", 165.0, 31.0, 0.0, 3.6, 100.0, "g"),
-    FoodItemUi(0, "Paneer", 265.0, 18.0, 6.0, 20.0, 100.0, "g")
+    FoodItemUi(1, "Idli", 39.0, 1.4, 7.6, 0.2, 1.0, "piece"),
+    FoodItemUi(2, "Dosa", 168.0, 4.0, 29.0, 3.7, 1.0, "piece"),
+    FoodItemUi(3, "Chapati", 120.0, 3.5, 18.0, 3.0, 1.0, "piece"),
+    FoodItemUi(4, "Samosa", 262.0, 5.0, 32.0, 13.0, 1.0, "piece"),
+    FoodItemUi(5, "Vada", 170.0, 4.0, 20.0, 8.0, 1.0, "piece"),
+    FoodItemUi(6, "Pani Puri", 45.0, 1.0, 7.0, 1.5, 1.0, "piece"),
+    FoodItemUi(7, "Poha", 180.0, 4.0, 32.0, 4.0, 1.0, "bowl"),
+    FoodItemUi(8, "Upma", 210.0, 6.0, 34.0, 6.0, 1.0, "bowl"),
+    FoodItemUi(9, "Bonda", 200.0, 4.0, 25.0, 9.0, 1.0, "piece"),
+    FoodItemUi(10, "Biscuits", 70.0, 1.0, 10.0, 3.0, 2.0, "pieces"),
+    FoodItemUi(11, "Tea", 30.0, 1.0, 5.0, 1.0, 200.0, "ml"),
+    FoodItemUi(12, "Coffee", 50.0, 2.0, 6.0, 2.0, 200.0, "ml"),
+    FoodItemUi(13, "Maggie", 310.0, 8.0, 45.0, 12.0, 1.0, "pack"),
+    FoodItemUi(14, "Potato Chips", 536.0, 7.0, 53.0, 35.0, 100.0, "g"),
+    FoodItemUi(15, "Chocolate", 546.0, 5.0, 61.0, 31.0, 100.0, "g"),
+    FoodItemUi(16, "Veg Puff", 250.0, 4.0, 30.0, 15.0, 1.0, "piece"),
+    FoodItemUi(17, "Bread Jam", 150.0, 3.0, 30.0, 2.0, 1.0, "slice"),
+    FoodItemUi(18, "Omelette", 154.0, 11.0, 1.0, 12.0, 1.0, "piece"),
+    FoodItemUi(19, "Sandwich", 250.0, 8.0, 35.0, 10.0, 1.0, "piece"),
+    FoodItemUi(20, "Fruit Salad", 50.0, 1.0, 12.0, 0.0, 100.0, "g"),
+    FoodItemUi(21, "Burger", 295.0, 13.0, 30.0, 14.0, 1.0, "piece"),
+    FoodItemUi(22, "Pizza Slice", 285.0, 12.0, 36.0, 10.0, 1.0, "slice"),
+    FoodItemUi(23, "Gulab Jamun", 150.0, 2.0, 25.0, 7.0, 1.0, "piece"),
+    FoodItemUi(24, "Lassi", 150.0, 3.5, 20.0, 4.0, 250.0, "ml"),
+    FoodItemUi(25, "Biryani", 350.0, 15.0, 45.0, 12.0, 1.0, "plate")
 )

@@ -6,7 +6,7 @@ data class FoodItemUi(
     val calories: Double,
     val protein: Double,
     val carbs: Double,
-    val fat: Double,
+    val fats: Double,
     val servingQuantity: Double,
     val servingUnit: String
 )

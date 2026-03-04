@@ -1,11 +1,4 @@
 package com.simats.nutrisoul.data
 
-data class FoodLog(
-    val name: String,
-    val calories: Double,
-    val protein: Double,
-    val carbs: Double,
-    val fats: Double,
-    val quantity: Double,
-    val mealType: String
-)
+// DEPRECATED: Use com.simats.nutrisoul.data.models.FoodLog instead.
+// This file is being cleared to prevent naming conflicts.

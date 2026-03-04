@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-@Database(entities = [FoodItem::class, LoggedFood::class, User::class, IntakeEntity::class, CustomFoodEntity::class, StepsEntity::class], version = 5, exportSchema = false)
+@Database(entities = [FoodItemEntity::class, LoggedFood::class, User::class, IntakeEntity::class, CustomFoodEntity::class, StepsEntity::class], version = 6, exportSchema = false)
 @TypeConverters(DateConverter::class, Converters::class, DateConverters::class, StringListConverter::class)
 abstract class AppDatabase : RoomDatabase() {
 

@@ -133,7 +133,6 @@ class LogFoodViewModel @Inject constructor(
                 // If OCR found nothing, use ML Kit Image Labeling
                 if (finalFoods.isEmpty()) {
                     val labels = LabelUtil.labelImage(getApplication(), uri)
-                    // Map labels to our known food candidates or just use the top labels
                     finalFoods = labels.take(3) 
                     Log.d("LogFood", "OCR empty, ML labels: $finalFoods")
                 }
@@ -147,13 +146,11 @@ class LogFoodViewModel @Inject constructor(
 
                 val apiKey = BuildConfig.NUTRITION_API_KEY
 
-                val foundItems: List<FoodItem> = coroutineScope {
-                    finalFoods.distinct().take(5).map { foodName ->
-                        async(Dispatchers.IO) {
-                            val list: List<FoodItem> = repository.searchFoods(foodName, apiKey).first()
-                            list.firstOrNull()
-                        }
-                    }.awaitAll().filterNotNull()
+                val foundItems: List<FoodItemUi> = coroutineScope {
+                    finalFoods.distinct().take(3).flatMap { foodName ->
+                        val results = repository.searchFoods(foodName, apiKey).first()
+                        results.take(3).map(::toFoodItemUi)
+                    }
                 }
 
                 _uiState.update {
@@ -161,7 +158,7 @@ class LogFoodViewModel @Inject constructor(
                         isLoading = false,
                         extractedText = text,
                         detectedFoods = finalFoods,
-                        nutrition = foundItems.map(::toFoodItemUi),
+                        nutrition = foundItems,
                         error = if (foundItems.isEmpty()) "Found $finalFoods but couldn't fetch nutrition details." else null
                     )
                 }
@@ -180,7 +177,7 @@ class LogFoodViewModel @Inject constructor(
                 calories = foodItem.calories * scale,
                 protein = foodItem.protein * scale,
                 carbs = foodItem.carbs * scale,
-                fats = foodItem.fat * scale,
+                fats = foodItem.fats * scale,
                 quantity = quantity,
                 mealType = getMealType(),
                 date = LocalDate.now()
@@ -229,14 +226,14 @@ class LogFoodViewModel @Inject constructor(
 
     private fun toFoodItemUi(foodItem: FoodItem): FoodItemUi {
         return FoodItemUi(
-            id = 0,
+            id = foodItem.id,
             name = foodItem.name,
-            calories = foodItem.calories,
-            protein = foodItem.protein,
-            carbs = foodItem.carbs,
-            fat = foodItem.fats,
-            servingQuantity = 100.0,
-            servingUnit = "g"
+            calories = foodItem.caloriesPer100g,
+            protein = foodItem.proteinPer100g,
+            carbs = foodItem.carbsPer100g,
+            fats = foodItem.fatsPer100g,
+            servingQuantity = foodItem.servingQuantity,
+            servingUnit = foodItem.servingUnit
         )
     }
 }

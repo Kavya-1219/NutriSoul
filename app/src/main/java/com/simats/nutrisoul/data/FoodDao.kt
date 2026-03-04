@@ -11,10 +11,10 @@ import java.util.Date
 interface FoodDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun saveFoodItem(foodItem: FoodItem)
+    suspend fun saveFoodItem(foodItem: FoodItemEntity)
 
     @Query("SELECT * FROM food_items WHERE name LIKE :query || '%'")
-    fun searchFood(query: String): Flow<List<FoodItem>>
+    fun searchFood(query: String): Flow<List<FoodItemEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun logFood(loggedFood: LoggedFood)

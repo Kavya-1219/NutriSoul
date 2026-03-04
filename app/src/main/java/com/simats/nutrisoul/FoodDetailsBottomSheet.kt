@@ -48,7 +48,7 @@ fun FoodDetailsBottomSheet(
             val calories = foodItem.calories * qty / serving
             val protein = foodItem.protein * qty / serving
             val carbs = foodItem.carbs * qty / serving
-            val fats = foodItem.fat * qty / serving
+            val fats = foodItem.fats * qty / serving
 
             NutritionGrid(
                 calories = calories,
