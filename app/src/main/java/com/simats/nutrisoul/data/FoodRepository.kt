@@ -18,8 +18,12 @@ class FoodRepository @Inject constructor(
     private val nutritionApiService: NutritionApiService
 ) {
 
-    fun observeTodayTotals(): Flow<DailyTotals> {
-        return intakeDao.observeTotalsForDate(LocalDate.now())
+    fun observeTodayTotals(email: String): Flow<DailyTotals> {
+        return intakeDao.observeTotalsForDate(LocalDate.now(), email)
+    }
+
+    fun observeLogsBetween(email: String, startDate: LocalDate, endDate: LocalDate): Flow<List<IntakeEntity>> {
+        return intakeDao.getLogsBetween(email, startDate, endDate)
     }
 
     fun searchFoods(query: String, apiKey: String): Flow<List<FoodItem>> {
@@ -37,8 +41,9 @@ class FoodRepository @Inject constructor(
         }.flowOn(Dispatchers.IO)
     }
 
-    suspend fun addFoodToDailyIntake(foodLog: FoodLog) {
-        intakeDao.insert(foodLog.toEntity())
+    suspend fun addFoodToDailyIntake(email: String, foodLog: FoodLog) {
+        val entity = foodLog.toEntity().copy(userEmail = email)
+        intakeDao.insert(entity)
     }
 
     suspend fun saveCustomFood(foodItem: FoodItem) {

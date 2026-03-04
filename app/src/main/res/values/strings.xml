@@ -19,103 +19,59 @@
     <string name="medical_disclaimer_icon">Medical Disclaimer Note</string>
     <string name="pro_tips_icon">Pro Tips Icon</string>
 
+    <!-- History Screen Strings -->
+    <string name="history_title">History</string>
+    <string name="back_button_content_description">Back</string>
+    <string name="nutrition_journey_label">Your nutrition journey</string>
+    <string name="days_logged_label">Days Logged</string>
+    <string name="total_meals_label">Total Meals</string>
+    <string name="today_label">Today</string>
+    <string name="kcal_unit">kcal</string>
+    <string name="protein_label">Protein</string>
+    <string name="carbs_label">Carbs</string>
+    <string name="fats_label">Fats</string>
+    <string name="logged_foods_count_format">LOGGED FOODS (%1$d)</string>
+    <string name="kcal_format">%1$d kcal</string>
+    <string name="gram_format">%1$dg</string>
+
     <!-- Recommendation Strings (Build Logic) -->
     <string name="bmi_status_format">BMI Status: %1$.1f (%2$s)</string>
     <string name="bmi_desc_format">Your BMI is %1$s. Based on current trends, %2$s</string>
-    <string name="bmi_msg_underweight">increasing calorie density is recommended to build healthy
-        mass.
-    </string>
-    <string name="bmi_msg_normal">you are in the optimal range. Focus on maintaining metabolic
-        flexibility.
-    </string>
-    <string name="bmi_msg_overweight_obese">a slight calorie deficit is recommended to reduce
-        systemic inflammation.
-    </string>
+    <string name="bmi_msg_underweight">increasing calorie density is recommended to build healthy mass.</string>
+    <string name="bmi_msg_normal">you are in the optimal range. Focus on maintaining metabolic flexibility.</string>
+    <string name="bmi_msg_overweight_obese">a slight calorie deficit is recommended to reduce systemic inflammation.</string>
     <string name="weight_mgmt_strategy">Weight Management Strategy</string>
-    <string name="weight_mgmt_desc">To reach your target, you need to lose %1$d kg. AI Suggestion:
-        deficit around %2$d kcal with high protein to spare muscle.
-    </string>
+    <string name="weight_mgmt_desc">To reach your target, you need to lose %1$d kg. AI Suggestion: deficit around %2$d kcal with high protein to spare muscle.</string>
     <string name="metabolic_support">Metabolic Support</string>
-    <string name="metabolic_support_desc">Target ~%1$dg of protein daily. This prevents metabolic
-        slowdown while you\'re in a calorie deficit.
-    </string>
+    <string name="metabolic_support_desc">Target ~%1$dg of protein daily. This prevents metabolic slowdown while you\'re in a calorie deficit.</string>
     <string name="growth_recovery_plan">Growth &amp; Recovery Plan</string>
-    <string name="growth_recovery_desc">Aiming for %1$d kg gain. AI Suggestion: consistent surplus
-        (~%2$d kcal) paired with resistance training.
-    </string>
+    <string name="growth_recovery_desc">Aiming for %1$d kg gain. AI Suggestion: consistent surplus (~%2$d kcal) paired with resistance training.</string>
     <string name="anabolic_environment">Anabolic Environment</string>
-    <string name="anabolic_environment_desc">Target ~1.6g/kg protein (~%1$dg/day) to maximize muscle
-        protein synthesis. Spread across 4-5 meals.
-    </string>
+    <string name="anabolic_environment_desc">Target ~1.6g/kg protein (~%1$dg/day) to maximize muscle protein synthesis. Spread across 4-5 meals.</string>
     <string name="maintenance_optimization">Maintenance &amp; Optimization</string>
-    <string name="maintenance_optimization_desc">Stay around %1$d kcal/day. Focus on dietary
-        diversity and consistent sleep to optimize recovery.
-    </string>
+    <string name="maintenance_optimization_desc">Stay around %1$d kcal/day. Focus on dietary diversity and consistent sleep to optimize recovery.</string>
     <string name="lifestyle_optimization">Lifestyle Optimization</string>
-    <string name="activity_sedentary">Activity levels are low. Focus on NEAT (Non-Exercise Activity
-        Thermogenesis) like standing or short walks.
-    </string>
-    <string name="activity_light">Daily activity is good. Adding 2 days of strength training will
-        boost your BMR.
-    </string>
-    <string name="activity_moderate">Excellent activity level. Prioritize electrolyte balance and
-        post-workout recovery.
-    </string>
-    <string name="activity_active">High volume detected. Ensure you are meeting carbohydrate targets
-        for glycogen replenishment.
-    </string>
-    <string name="activity_default">Consistent movement supports your overall health and %1$s
-        goal.
-    </string>
+    <string name="activity_sedentary">Activity levels are low. Focus on NEAT (Non-Exercise Activity Thermogenesis) like standing or short walks.</string>
+    <string name="activity_light">Daily activity is good. Adding 2 days of strength training will boost your BMR.</string>
+    <string name="activity_moderate">Excellent activity level. Prioritize electrolyte balance and post-workout recovery.</string>
+    <string name="activity_active">High volume detected. Ensure you are meeting carbohydrate targets for glycogen replenishment.</string>
+    <string name="activity_default">Consistent movement supports your overall health and %1$s goal.</string>
     <string name="vitals_alert_bp">Vitals Alert: BP Management</string>
-    <string name="vitals_alert_bp_desc">Recorded BP (%1$d/%2$d) is elevated. AI Insight: Focus on
-        the DASH diet (rich in potassium, calcium, and magnesium).
-    </string>
+    <string name="vitals_alert_bp_desc">Recorded BP (%1$d/%2$d) is elevated. AI Insight: Focus on the DASH diet (rich in potassium, calcium, and magnesium).</string>
     <string name="cardio_health">Cardiovascular Health</string>
-    <string name="cardio_health_desc">Prioritize phytosterols and omega-3 fatty acids. Limit
-        saturated fats to &lt;7% of total calories.
-    </string>
+    <string name="cardio_health_desc">Prioritize phytosterols and omega-3 fatty acids. Limit saturated fats to &lt;7% of total calories.</string>
     <string name="condition_mgmt_format">Condition Management: %1$s</string>
     <string name="fluid_balance">Fluid Balance</string>
-    <string name="fluid_balance_desc">Drink about %1$dml daily (~%2$d glasses). Hydration status
-        directly impacts cognitive function and satiety.
-    </string>
+    <string name="fluid_balance_desc">Drink about %1$dml daily (~%2$d glasses). Hydration status directly impacts cognitive function and satiety.</string>
 
     <!-- Health Tips Map -->
-    <string name="tip_diabetes">Focus on high-fiber, low-GI foods. Prefer whole grains, legumes,
-        veggies, and avoid sugary drinks.
-    </string>
-    <string name="tip_pcos">Include anti-inflammatory foods like nuts, seeds, fatty fish, and plenty
-        of vegetables. Limit refined carbs.
-    </string>
-    <string name="tip_thyroid">Ensure adequate iodine and selenium intake. Include eggs, dairy,
-        nuts, and balanced meals.
-    </string>
-    <string name="tip_hbp">Limit sodium and include potassium-rich foods like bananas, spinach,
-        coconut water, and dals.
-    </string>
-    <string name="tip_lbp">Stay hydrated and consider small, frequent meals. Include electrolytes if
-        needed.
-    </string>
-    <string name="tip_cholesterol">Increase soluble fiber (oats, apples, beans) and healthy fats
-        (olive oil, nuts).
-    </string>
-    <string name="tip_digestive">Include probiotics/fermented foods and gradually increase fiber.
-        Stay hydrated.
-    </string>
-    <string name="tip_anemia">Boost iron intake with vitamin C pairing (lemon, amla). Include leafy
-        greens, legumes, and dates.
-    </string>
-    <string name="tip_allergies">Read labels carefully and avoid cross-contamination. Prefer simple,
-        home-cooked meals.
-    </string>
-
-    <!-- <string name="goal_card_description">These recommendations are tailored to help you achieve your
-        goal safely and effectively.
-    </string> -->
-
-    <!-- <string name="medical_disclaimer">Medical Disclaimer: These are AI-generated optimization
-        strategies. Always consult a healthcare professional before making significant changes to
-        your diet or fitness routine.
-    </string> -->
+    <string name="tip_diabetes">Focus on high-fiber, low-GI foods. Prefer whole grains, legumes, veggies, and avoid sugary drinks.</string>
+    <string name="tip_pcos">Include anti-inflammatory foods like nuts, seeds, fatty fish, and plenty of vegetables. Limit refined carbs.</string>
+    <string name="tip_thyroid">Ensure adequate iodine and selenium intake. Include eggs, dairy, nuts, and balanced meals.</string>
+    <string name="tip_hbp">Limit sodium and include potassium-rich foods like bananas, spinach, coconut water, and dals.</string>
+    <string name="tip_lbp">Stay hydrated and consider small, frequent meals. Include electrolytes if needed.</string>
+    <string name="tip_cholesterol">Increase soluble fiber (oats, apples, beans) and healthy fats (olive oil, nuts).</string>
+    <string name="tip_digestive">Include probiotics/fermented foods and gradually increase fiber. Stay hydrated.</string>
+    <string name="tip_anemia">Boost iron intake with vitamin C pairing (lemon, amla). Include leafy greens, legumes, and dates.</string>
+    <string name="tip_allergies">Read labels carefully and avoid cross-contamination. Prefer simple, home-cooked meals.</string>
 </resources>

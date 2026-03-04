@@ -5,7 +5,11 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.simats.nutrisoul.data.FoodLogEntity
+import com.simats.nutrisoul.data.FoodLogRepository
 import com.simats.nutrisoul.data.FoodRepository
+import com.simats.nutrisoul.data.SessionManager
+import com.simats.nutrisoul.data.UserRepository
 import com.simats.nutrisoul.data.models.DailyTotals
 import com.simats.nutrisoul.data.models.FoodItem
 import com.simats.nutrisoul.data.models.FoodLog
@@ -13,9 +17,8 @@ import com.simats.nutrisoul.ui.DailyTotalsUi
 import com.simats.nutrisoul.ui.FoodItemUi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,6 +30,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -35,6 +39,7 @@ import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.util.Calendar
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 data class LogFoodUiState(
     val isLoading: Boolean = false,
@@ -45,15 +50,22 @@ data class LogFoodUiState(
     val error: String? = null
 )
 
-@OptIn(FlowPreview::class)
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class LogFoodViewModel @Inject constructor(
     private val repository: FoodRepository,
+    private val foodLogRepository: FoodLogRepository,
+    private val userRepository: UserRepository,
+    private val sessionManager: SessionManager,
     private val app: Application
 ) : AndroidViewModel(app) {
 
     val todayTotals: StateFlow<DailyTotalsUi> =
-        repository.observeTodayTotals()
+        sessionManager.currentUserEmailFlow()
+            .flatMapLatest { email ->
+                if (email == null) flowOf(DailyTotals())
+                else repository.observeTodayTotals(email)
+            }
             .map { totals: DailyTotals ->
                 DailyTotalsUi(
                     calories = totals.calories ?: 0.0,
@@ -100,6 +112,10 @@ class LogFoodViewModel @Inject constructor(
         }
     }
 
+    suspend fun getTargetCaloriesOrDefault(default: Double): Double {
+        return userRepository.getLatestUser().first()?.targetCalories?.toDouble() ?: default
+    }
+
     fun onQueryChanged(query: String) {
         _query.value = query
     }
@@ -130,11 +146,9 @@ class LogFoodViewModel @Inject constructor(
 
                 var finalFoods = foodsDetectedByOcr
 
-                // If OCR found nothing, use ML Kit Image Labeling
                 if (finalFoods.isEmpty()) {
                     val labels = LabelUtil.labelImage(getApplication(), uri)
                     finalFoods = labels.take(3) 
-                    Log.d("LogFood", "OCR empty, ML labels: $finalFoods")
                 }
 
                 if (finalFoods.isEmpty()) {
@@ -153,7 +167,6 @@ class LogFoodViewModel @Inject constructor(
                     }
                 }
 
-                // ✅ Professional Fallback: If online search fails, use local suggested foods
                 val localFallback = finalFoods
                     .flatMap { key ->
                         suggestedFoods.filter { it.name.contains(key, ignoreCase = true) }
@@ -166,10 +179,7 @@ class LogFoodViewModel @Inject constructor(
                         isLoading = false,
                         extractedText = text,
                         detectedFoods = finalFoods,
-                        nutrition = if (foundItems.isNotEmpty())
-                            foundItems
-                        else
-                            localFallback,
+                        nutrition = if (foundItems.isNotEmpty()) foundItems else localFallback,
                         error = if (foundItems.isEmpty() && localFallback.isEmpty())
                             "Found $finalFoods but couldn't fetch nutrition details."
                         else null
@@ -182,49 +192,93 @@ class LogFoodViewModel @Inject constructor(
         }
     }
 
-    fun addFood(foodItem: FoodItemUi, quantity: Double) {
+    fun addFood(foodItem: FoodItemUi, grams: Double) {
         viewModelScope.launch {
-            val scale = if (foodItem.servingQuantity != 0.0) quantity / foodItem.servingQuantity else 0.0
+            val email = sessionManager.currentUserEmailFlow().first() ?: return@launch
+
+            // FoodItemUi values are per 100g
+            val gramsSafe = grams.coerceAtLeast(1.0)
+            val qty100 = gramsSafe / 100.0
+
+            // 1) Save to food_logs (per 100g + qty100)
+            foodLogRepository.addLog(
+                FoodLogEntity(
+                    userEmail = email,
+                    name = foodItem.name,
+                    caloriesPerUnit = foodItem.calories.roundToInt(),
+                    proteinPerUnit = foodItem.protein.roundToInt(),
+                    carbsPerUnit = foodItem.carbs.roundToInt(),
+                    fatsPerUnit = foodItem.fats.roundToInt(),
+                    quantity = qty100.toFloat(),
+                    unit = "100g",
+                    timestampMillis = System.currentTimeMillis()
+                )
+            )
+
+            // 2) Save to daily_intake totals (already scaled)
             val foodLog = FoodLog(
                 name = foodItem.name,
-                calories = foodItem.calories * scale,
-                protein = foodItem.protein * scale,
-                carbs = foodItem.carbs * scale,
-                fats = foodItem.fats * scale,
-                quantity = quantity,
+                calories = foodItem.calories * qty100,
+                protein = foodItem.protein * qty100,
+                carbs = foodItem.carbs * qty100,
+                fats = foodItem.fats * qty100,
+                quantity = gramsSafe,
                 mealType = getMealType(),
                 date = LocalDate.now()
             )
-            repository.addFoodToDailyIntake(foodLog)
+            repository.addFoodToDailyIntake(email, foodLog)
         }
     }
 
     fun addManualFood(
         name: String,
         quantity: Double,
-        unit: String,
         calories: Double,
         protein: Double,
         carbs: Double,
         fats: Double
     ) {
         viewModelScope.launch {
+            val email = sessionManager.currentUserEmailFlow().first() ?: return@launch
+
+            val gramsSafe = quantity.coerceAtLeast(1.0)
+            val qty100 = gramsSafe / 100.0
+            val per100Factor = 100.0 / gramsSafe
+
+            // Convert totals into per-100g storage
+            val caloriesPer100 = (calories * per100Factor).roundToInt()
+            val proteinPer100 = (protein * per100Factor).roundToInt()
+            val carbsPer100 = (carbs * per100Factor).roundToInt()
+            val fatsPer100 = (fats * per100Factor).roundToInt()
+
+            // 1) Save to food_logs
+            foodLogRepository.addLog(
+                FoodLogEntity(
+                    userEmail = email,
+                    name = name,
+                    caloriesPerUnit = caloriesPer100,
+                    proteinPerUnit = proteinPer100,
+                    carbsPerUnit = carbsPer100,
+                    fatsPerUnit = fatsPer100,
+                    quantity = qty100.toFloat(),
+                    unit = "100g",
+                    timestampMillis = System.currentTimeMillis()
+                )
+            )
+
+            // 2) Save to daily_intake (totals already correct)
             val foodLog = FoodLog(
                 name = name,
                 calories = calories,
                 protein = protein,
                 carbs = carbs,
                 fats = fats,
-                quantity = quantity,
+                quantity = gramsSafe,
                 mealType = "Manual Entry",
                 date = LocalDate.now()
             )
-            repository.addFoodToDailyIntake(foodLog)
+            repository.addFoodToDailyIntake(email, foodLog)
         }
-    }
-
-    fun getTargetCaloriesOrDefault(default: Double): Double {
-        return default
     }
 
     private fun getMealType(): String {

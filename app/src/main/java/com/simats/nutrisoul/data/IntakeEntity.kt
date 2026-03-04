@@ -10,6 +10,8 @@ data class IntakeEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
 
+    val userEmail: String = "", // Associated user
+
     val name: String,
 
     val calories: Double,
@@ -18,8 +20,11 @@ data class IntakeEntity(
     val fats: Double,
 
     val quantity: Double,     // grams or servings
+    val unit: String = "g",
 
     val mealType: String,     // breakfast, lunch, dinner, snack
 
-    val date: LocalDate       // today
+    val date: LocalDate,      // today
+
+    val timestamp: Long = System.currentTimeMillis()
 )

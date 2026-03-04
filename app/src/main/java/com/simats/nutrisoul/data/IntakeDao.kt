@@ -16,10 +16,18 @@ interface IntakeDao {
 
     @Query("""
         SELECT * FROM daily_intake
-        WHERE date = :date
+        WHERE date = :date AND userEmail = :email
         ORDER BY id DESC
     """)
-    fun getForDate(date: LocalDate): Flow<List<IntakeEntity>>
+    fun getForDate(date: LocalDate, email: String): Flow<List<IntakeEntity>>
+
+    @Query("""
+        SELECT * FROM daily_intake
+        WHERE userEmail = :email 
+          AND date BETWEEN :startDate AND :endDate
+        ORDER BY date DESC, timestamp DESC
+    """)
+    fun getLogsBetween(email: String, startDate: LocalDate, endDate: LocalDate): Flow<List<IntakeEntity>>
 
     @Query("""
         SELECT 
@@ -28,7 +36,7 @@ interface IntakeDao {
             IFNULL(SUM(carbs), 0) as carbs,
             IFNULL(SUM(fats), 0) as fats
         FROM daily_intake
-        WHERE date = :date
+        WHERE date = :date AND userEmail = :email
     """)
-    fun observeTotalsForDate(date: LocalDate): Flow<DailyTotals>
+    fun observeTotalsForDate(date: LocalDate, email: String): Flow<DailyTotals>
 }

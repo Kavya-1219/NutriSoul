@@ -3,13 +3,17 @@ package com.simats.nutrisoul
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.simats.nutrisoul.data.FoodRepository
+import com.simats.nutrisoul.data.SessionManager
 import com.simats.nutrisoul.data.models.DailyTotals
 import com.simats.nutrisoul.ui.DailyTotalsUi
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -18,15 +22,24 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val repository: FoodRepository
+    private val repository: FoodRepository,
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     val todayTotals: StateFlow<DailyTotalsUi> =
-        repository.observeTodayTotals()
-            .map<DailyTotals, DailyTotalsUi> { totals ->
+        sessionManager.currentUserEmailFlow()
+            .flatMapLatest { email ->
+                if (email != null) {
+                    repository.observeTodayTotals(email)
+                } else {
+                    flowOf(DailyTotals(0.0, 0.0, 0.0, 0.0))
+                }
+            }
+            .map { totals ->
                 DailyTotalsUi(
                     calories = totals.calories ?: 0.0,
                     protein = totals.protein ?: 0.0,

@@ -5,12 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
-import com.simats.nutrisoul.data.AppDatabase
-import com.simats.nutrisoul.data.CustomFoodDao
-import com.simats.nutrisoul.data.FoodDao
-import com.simats.nutrisoul.data.IntakeDao
-import com.simats.nutrisoul.data.UserDao
-import com.simats.nutrisoul.data.StepsDao
+import com.simats.nutrisoul.data.*
 import com.simats.nutrisoul.data.network.NutritionApiService
 import dagger.Module
 import dagger.Provides
@@ -54,6 +49,17 @@ object AppModule {
     @Provides
     fun provideStepsDao(database: AppDatabase): StepsDao {
         return database.stepsDao()
+    }
+
+    @Provides
+    fun provideFoodLogDao(database: AppDatabase): FoodLogDao {
+        return database.foodLogDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSessionManager(@ApplicationContext context: Context): SessionManager {
+        return SessionManager(context)
     }
 
     @Provides

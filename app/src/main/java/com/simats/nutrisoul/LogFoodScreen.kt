@@ -58,8 +58,12 @@ fun LogFoodScreen(
     var showManualSheet by remember { mutableStateOf(false) }
     var showScanResults by remember { mutableStateOf(false) }
 
-    val targetCalories = viewModel.getTargetCaloriesOrDefault(2000.0)
-    val progressRaw = if (targetCalories > 0) (todayTotals.calories / targetCalories).toFloat() else 0f
+    var targetCalories by remember { mutableStateOf(2000.0) }
+    LaunchedEffect(Unit) {
+        targetCalories = viewModel.getTargetCaloriesOrDefault(2000.0)
+    }
+    
+    val progressRaw = if (targetCalories > 0.0) (todayTotals.calories / targetCalories).toFloat() else 0f
     val progress = progressRaw.coerceIn(0f, 1f)
     val animatedProgress by animateFloatAsState(progress, label = "")
 
@@ -215,7 +219,6 @@ fun LogFoodScreen(
                     viewModel.addManualFood(
                         name = manual.name,
                         quantity = manual.quantity,
-                        unit = manual.unit,
                         calories = manual.calories,
                         protein = manual.protein,
                         carbs = manual.carbs,
