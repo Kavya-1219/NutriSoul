@@ -35,3 +35,14 @@ data class StressAndSleepUiState(
     val showWindDownDialog: Boolean = false,
     val showLogSleepDialog: Boolean = false
 )
+
+data class MindCareUiState(
+    val sleepSchedule: SleepSchedule = SleepSchedule(),
+    val sleepLogs: List<SleepLog> = emptyList(),
+    val reminderEnabled: Boolean = false,
+    val weeklyAverageHours: Float = 0f,
+    val showSleepScheduleDialog: Boolean = false,
+    val isBreathing: Boolean = false,
+    val showWindDownDialog: Boolean = false,
+    val showLogSleepDialog: Boolean = false
+)

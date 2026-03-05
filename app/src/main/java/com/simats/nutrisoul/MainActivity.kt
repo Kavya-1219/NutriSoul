@@ -1,6 +1,7 @@
 package com.simats.nutrisoul
 
 import android.content.Context
+import android.content.Intent
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -32,12 +33,15 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private var initialSteps: Int = -1
 
     private val userViewModel: UserViewModel by viewModels()
+    private val mindCareViewModel: MindCareViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+
+        handleWindDownIntent(intent)
 
         setContent {
             val darkMode by userViewModel.darkMode.collectAsStateWithLifecycle()
@@ -60,6 +64,18 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     unregisterStepSensor()
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleWindDownIntent(intent)
+    }
+
+    private fun handleWindDownIntent(intent: Intent?) {
+        val show = intent?.getBooleanExtra("SHOW_WIND_DOWN", false) ?: false
+        if (show) {
+            MindCarePrefs.setPendingWindDown(this, true)
         }
     }
 
@@ -86,7 +102,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         if (stepCounterSensor != null) {
             sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL)
         }
-
     }
 
     private fun unregisterStepSensor() {

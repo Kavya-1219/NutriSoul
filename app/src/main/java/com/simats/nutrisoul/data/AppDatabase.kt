@@ -8,8 +8,26 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [FoodItemEntity::class, LoggedFood::class, User::class, IntakeEntity::class, CustomFoodEntity::class, StepsEntity::class, FoodLogEntity::class], version = 8, exportSchema = false)
-@TypeConverters(DateConverter::class, Converters::class, DateConverters::class, StringListConverter::class)
+@Database(
+    entities = [
+        FoodItemEntity::class, 
+        LoggedFood::class, 
+        User::class, 
+        IntakeEntity::class, 
+        CustomFoodEntity::class, 
+        StepsEntity::class, 
+        FoodLogEntity::class,
+        SleepLogEntity::class,
+        SleepScheduleEntity::class
+    ], 
+    version = 9, 
+    exportSchema = false
+)
+@TypeConverters(
+    DateConverter::class, 
+    StringListConverter::class,
+    SleepConverters::class
+)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun foodDao(): FoodDao
@@ -18,6 +36,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun customFoodDao(): CustomFoodDao
     abstract fun stepsDao(): StepsDao
     abstract fun foodLogDao(): FoodLogDao
+    abstract fun sleepDao(): SleepDao
 
     companion object {
         @Volatile

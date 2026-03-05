@@ -1,9 +1,6 @@
 package com.simats.nutrisoul
 
-import android.app.AlarmManager
-import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,13 +20,32 @@ class StressAndSleepViewModel @Inject constructor() : ViewModel() {
     private val _uiState = MutableStateFlow(StressAndSleepUiState())
     val uiState: StateFlow<StressAndSleepUiState> = _uiState.asStateFlow()
 
-    init {
+    fun init(context: Context) {
         viewModelScope.launch {
+            // Load persisted state
+            val schedule = MindCarePrefs.loadSchedule(context)
+            val reminderEnabled = MindCarePrefs.loadReminderEnabled(context)
+            val logs = MindCarePrefs.loadLogs(context)
+            val weeklyAvg = calculateWeeklyAverageHours(logs)
+
             _uiState.update {
                 it.copy(
-                    sleepLogs = dummySleepLogs,
-                    weeklyAverageHours = 7.5f
+                    sleepSchedule = schedule,
+                    reminderEnabled = reminderEnabled,
+                    sleepLogs = logs,
+                    weeklyAverageHours = weeklyAvg
                 )
+            }
+
+            // If there is a pending bedtime popup request (from alarm/notification), show it once.
+            val pendingWindDown = MindCarePrefs.consumePendingWindDown(context)
+            if (pendingWindDown) {
+                _uiState.update { it.copy(showWindDownDialog = true) }
+            }
+
+            // Keep alarm in sync (if user enabled reminders)
+            if (reminderEnabled) {
+                scheduleBedtimeReminder(context, schedule.bedtime)
             }
         }
     }
@@ -40,12 +56,17 @@ class StressAndSleepViewModel @Inject constructor() : ViewModel() {
 
     fun onSaveSchedule(bedtime: LocalTime, wakeTime: LocalTime, context: Context) {
         val newSchedule = SleepSchedule(bedtime, wakeTime)
+
         _uiState.update {
             it.copy(
                 sleepSchedule = newSchedule,
                 showSleepScheduleDialog = false
             )
         }
+
+        MindCarePrefs.saveSchedule(context, newSchedule)
+
+        // Keep alarm aligned if reminders enabled
         if (uiState.value.reminderEnabled) {
             scheduleBedtimeReminder(context, bedtime)
         }
@@ -69,6 +90,7 @@ class StressAndSleepViewModel @Inject constructor() : ViewModel() {
         } else {
             Duration.between(bedtime, wakeTime)
         }
+
         val hours = duration.toHours()
         val minutes = duration.toMinutes() % 60
         val durationString = "${hours}h ${minutes}m"
@@ -82,16 +104,28 @@ class StressAndSleepViewModel @Inject constructor() : ViewModel() {
             quality = quality
         )
 
-        _uiState.update {
-            it.copy(
-                sleepLogs = listOf(newLog) + it.sleepLogs.filter { log -> !log.date.isEqual(LocalDate.now()) },
+        _uiState.update { current ->
+            val withoutToday = current.sleepLogs.filter { !it.date.isEqual(LocalDate.now()) }
+            val updated = (listOf(newLog) + withoutToday).sortedByDescending { it.date }.take(7)
+            current.copy(
+                sleepLogs = updated,
+                weeklyAverageHours = calculateWeeklyAverageHours(updated),
                 showLogSleepDialog = false
             )
         }
     }
 
+    fun persistAfterLog(context: Context) {
+        // Call this after onLogSleep from UI layer
+        val logs = uiState.value.sleepLogs
+        MindCarePrefs.saveLogs(context, logs)
+        _uiState.update { it.copy(weeklyAverageHours = calculateWeeklyAverageHours(logs)) }
+    }
+
     fun onReminderToggled(enabled: Boolean, context: Context) {
         _uiState.update { it.copy(reminderEnabled = enabled) }
+        MindCarePrefs.saveReminderEnabled(context, enabled)
+
         if (enabled) {
             scheduleBedtimeReminder(context, uiState.value.sleepSchedule.bedtime)
         } else {
@@ -114,20 +148,19 @@ class StressAndSleepViewModel @Inject constructor() : ViewModel() {
     fun onDismissWindDownDialog() {
         _uiState.update { it.copy(showWindDownDialog = false) }
     }
-}
 
-val dummySleepLogs = listOf(
-    SleepLog(LocalDate.now().minusDays(1), LocalTime.of(22, 45), LocalTime.of(6, 15), "7h 30m", 450, SleepQuality.Good),
-    SleepLog(LocalDate.now().minusDays(2), LocalTime.of(23, 30), LocalTime.of(6, 15), "6h 45m", 405, SleepQuality.Fair),
-    SleepLog(LocalDate.now().minusDays(3), LocalTime.of(22, 0), LocalTime.of(6, 0), "8h 0m", 480, SleepQuality.Good),
-    SleepLog(LocalDate.now().minusDays(4), LocalTime.of(1, 0), LocalTime.of(6, 30), "5h 30m", 330, SleepQuality.Poor),
-)
+    fun onSnooze10Min(context: Context) {
+        // Prevent immediate re-trigger
+        MindCarePrefs.saveSnoozeUntil(context, System.currentTimeMillis() + 10 * 60 * 1000L)
+        scheduleSnoozeReminder(context, 10)
+    }
 
-fun cancelBedtimeReminder(context: Context) {
-    val intent = Intent(context, BedtimeReminderReceiver::class.java)
-    val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_NO_CREATE)
-    if (pendingIntent != null) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        alarmManager.cancel(pendingIntent)
+    private fun calculateWeeklyAverageHours(logs: List<SleepLog>): Float {
+        if (logs.isEmpty()) return 0f
+        val last7 = logs.sortedByDescending { it.date }.take(7)
+        val totalMinutes = last7.sumOf { it.durationMinutes }
+        val avgMinutes = totalMinutes.toFloat() / last7.size.toFloat()
+        val avgHours = avgMinutes / 60f
+        return (kotlin.math.round(avgHours * 10f) / 10f)
     }
 }

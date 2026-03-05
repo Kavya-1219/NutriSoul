@@ -57,6 +57,11 @@ object AppModule {
     }
 
     @Provides
+    fun provideSleepDao(database: AppDatabase): SleepDao {
+        return database.sleepDao()
+    }
+
+    @Provides
     @Singleton
     fun provideSessionManager(@ApplicationContext context: Context): SessionManager {
         return SessionManager(context)
