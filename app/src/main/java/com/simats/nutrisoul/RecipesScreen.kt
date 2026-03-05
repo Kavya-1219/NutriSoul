@@ -1,8 +1,10 @@
-
 package com.simats.nutrisoul
 
+import android.content.Context
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -21,12 +23,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 
 data class Recipe(
     val id: Int,
@@ -45,446 +48,219 @@ data class Recipe(
     val image: String
 )
 
-val recipes = listOf(
+private const val PREFS_NAME = "recipes_prefs"
+private const val KEY_FAVORITES = "favorite_recipe_ids"
+
+private fun loadFavorites(context: Context): Set<Int> {
+    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    val raw = prefs.getStringSet(KEY_FAVORITES, emptySet()) ?: emptySet()
+    return raw.mapNotNull { it.toIntOrNull() }.toSet()
+}
+
+private fun saveFavorites(context: Context, favorites: Set<Int>) {
+    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    prefs.edit()
+        .putStringSet(KEY_FAVORITES, favorites.map { it.toString() }.toSet())
+        .apply()
+}
+
+private enum class RecipeFilter(val label: String) {
+    NONE("All"),
+    HIGH_PROTEIN("High Protein"),
+    LOW_CARB("Low Carb"),
+    HIGH_FIBER("High Fiber"),
+    LOW_CAL("Low Calories")
+}
+
+private val recipes = listOf(
+    // -------------------- BREAKFAST --------------------
     Recipe(
-        id = 1,
-        name = "Masala Oats Upma",
-        category = "breakfast",
-        cookTime = "15 mins",
-        calories = 180,
-        servings = 2,
-        difficulty = "Easy",
-        protein = 6,
-        carbs = 28,
-        fats = 4,
-        fiber = 5,
+        id = 1, name = "Masala Oats Upma", category = "breakfast", cookTime = "15 mins",
+        calories = 180, servings = 2, difficulty = "Easy", protein = 6, carbs = 28, fats = 4, fiber = 5,
         image = "🥣",
-        ingredients = listOf(
-            "1 cup rolled oats",
-            "1 onion, chopped",
-            "1 tomato, chopped",
-            "1 green chili, chopped",
-            "1/2 tsp mustard seeds",
-            "Curry leaves",
-            "1/2 tsp turmeric",
-            "Salt to taste",
-            "2 cups water",
-            "Fresh coriander"
-        ),
-        instructions = listOf(
-            "Dry roast oats in a pan for 3-4 minutes until fragrant. Set aside.",
-            "Heat 1 tsp oil, add mustard seeds and curry leaves.",
-            "Add onions, green chili, and sauté until golden.",
-            "Add tomatoes, turmeric, and salt. Cook for 2 minutes.",
-            "Add 2 cups water and bring to boil.",
-            "Add roasted oats, mix well, and cook for 3-4 minutes.",
-            "Garnish with coriander and serve hot."
-        )
+        ingredients = listOf("1 cup rolled oats","1 onion, chopped","1 tomato, chopped","1 green chili, chopped","1/2 tsp mustard seeds","Curry leaves","1/2 tsp turmeric","Salt","2 cups water","Fresh coriander"),
+        instructions = listOf("Dry roast oats 3-4 minutes.","Temper mustard + curry leaves.","Sauté onion + chili.","Add tomatoes + turmeric + salt.","Add water; boil.","Add oats; cook 3-4 minutes.","Garnish and serve.")
     ),
     Recipe(
-        id = 2,
-        name = "Moong Dal Cheela",
-        category = "breakfast",
-        cookTime = "20 mins",
-        calories = 220,
-        servings = 2,
-        difficulty = "Easy",
-        protein = 12,
-        carbs = 30,
-        fats = 5,
-        fiber = 8,
+        id = 2, name = "Moong Dal Cheela", category = "breakfast", cookTime = "20 mins",
+        calories = 220, servings = 2, difficulty = "Easy", protein = 12, carbs = 30, fats = 5, fiber = 8,
         image = "🥞",
-        ingredients = listOf(
-            "1 cup moong dal (soaked 4 hours)",
-            "1 onion, chopped",
-            "1 green chili",
-            "1 inch ginger",
-            "1/2 tsp cumin seeds",
-            "Salt to taste",
-            "Fresh coriander",
-            "Oil for cooking"
-        ),
-        instructions = listOf(
-            "Drain soaked moong dal and grind to a smooth batter with ginger and green chili.",
-            "Add chopped onions, cumin seeds, salt, and coriander. Mix well.",
-            "Add water if needed to make a pancake-like consistency.",
-            "Heat a non-stick pan and grease lightly.",
-            "Pour a ladle of batter and spread in a circle.",
-            "Cook on medium heat until golden, flip and cook other side.",
-            "Serve hot with green chutney or yogurt."
-        )
+        ingredients = listOf("1 cup moong dal (soaked)","1 onion, chopped","1 green chili","1 inch ginger","1/2 tsp cumin","Salt","Coriander","Oil"),
+        instructions = listOf("Grind dal with ginger + chili.","Add onion, cumin, salt, coriander.","Cook on pan both sides.","Serve with chutney/yogurt.")
     ),
     Recipe(
-        id = 3,
-        name = "Vegetable Poha",
-        category = "breakfast",
-        cookTime = "15 mins",
-        calories = 200,
-        servings = 2,
-        difficulty = "Easy",
-        protein = 4,
-        carbs = 35,
-        fats = 6,
-        fiber = 3,
+        id = 3, name = "Vegetable Poha", category = "breakfast", cookTime = "15 mins",
+        calories = 200, servings = 2, difficulty = "Easy", protein = 4, carbs = 35, fats = 6, fiber = 3,
         image = "🍚",
-        ingredients = listOf(
-            "2 cups flattened rice (poha)",
-            "1 onion, sliced",
-            "1 potato, diced small",
-            "1/2 cup peas",
-            "1 green chili, chopped",
-            "1/2 tsp mustard seeds",
-            "1/2 tsp turmeric",
-            "Curry leaves",
-            "Peanuts",
-            "Lemon juice",
-            "Fresh coriander"
-        ),
-        instructions = listOf(
-            "Rinse poha in water and drain immediately. Set aside.",
-            "Heat 1 tbsp oil, add mustard seeds, curry leaves, and peanuts.",
-            "Add onions, green chili, and sauté until translucent.",
-            "Add potatoes and peas, cook until tender (add water if needed).",
-            "Add turmeric and salt, mix well.",
-            "Add drained poha, mix gently without breaking.",
-            "Cook for 2-3 minutes.",
-            "Add lemon juice, garnish with coriander, and serve."
-        )
+        ingredients = listOf("2 cups poha","1 onion","1 potato","1/2 cup peas","1 green chili","mustard","turmeric","curry leaves","peanuts","lemon","coriander"),
+        instructions = listOf("Rinse poha; drain.","Temper mustard + curry leaves + peanuts.","Cook onion + veggies.","Add turmeric + salt.","Mix poha gently.","Finish with lemon + coriander.")
     ),
     Recipe(
-        id = 4,
-        name = "Dal Tadka",
-        category = "lunch",
-        cookTime = "30 mins",
-        calories = 180,
-        servings = 4,
-        difficulty = "Medium",
-        protein = 10,
-        carbs = 28,
-        fats = 4,
-        fiber = 12,
+        id = 13, name = "Idli Sambar (Light & Protein)", category = "breakfast", cookTime = "25 mins",
+        calories = 240, servings = 2, difficulty = "Medium", protein = 10, carbs = 40, fats = 3, fiber = 6,
+        image = "🍘",
+        ingredients = listOf("4 idlis","1 cup sambar","Mixed veggies","Mustard","Curry leaves","Salt"),
+        instructions = listOf("Steam/prepare idlis.","Heat sambar and simmer.","Temper mustard + curry leaves.","Serve hot.")
+    ),
+    Recipe(
+        id = 14, name = "Ragi Dosa with Veg Filling", category = "breakfast", cookTime = "20 mins",
+        calories = 260, servings = 2, difficulty = "Medium", protein = 8, carbs = 42, fats = 6, fiber = 7,
+        image = "🫓",
+        ingredients = listOf("1 cup ragi flour","Salt","Water","Onion, carrot, capsicum","1 tsp oil"),
+        instructions = listOf("Make thin batter.","Spread on pan.","Add veg filling; fold.","Serve with chutney.")
+    ),
+
+    // -------------------- LUNCH --------------------
+    Recipe(
+        id = 4, name = "Dal Tadka", category = "lunch", cookTime = "30 mins",
+        calories = 180, servings = 4, difficulty = "Medium", protein = 10, carbs = 28, fats = 4, fiber = 12,
         image = "🍲",
-        ingredients = listOf(
-            "1 cup toor dal (split pigeon peas)",
-            "2 tomatoes, chopped",
-            "1 onion, chopped",
-            "2 green chilies",
-            "1 tsp cumin seeds",
-            "3-4 garlic cloves",
-            "1/2 tsp turmeric",
-            "1 tsp red chili powder",
-            "1 tsp garam masala",
-            "Fresh coriander",
-            "Ghee for tadka"
-        ),
-        instructions = listOf(
-            "Wash and pressure cook dal with turmeric, salt, and 3 cups water for 3-4 whistles.",
-            "Mash the cooked dal lightly.",
-            "Heat 2 tsp ghee in a pan, add cumin seeds and garlic.",
-            "Add onions and green chilies, sauté until golden.",
-            "Add tomatoes, red chili powder, and cook until mushy.",
-            "Pour this tadka over the dal and mix well.",
-            "Add garam masala and simmer for 5 minutes.",
-            "Garnish with coriander and serve with rice or roti."
-        )
+        ingredients = listOf("1 cup toor dal","tomatoes","onion","chilies","cumin","garlic","turmeric","chili powder","garam masala","coriander","ghee"),
+        instructions = listOf("Cook dal.","Make tadka.","Mix and simmer.","Garnish and serve.")
     ),
     Recipe(
-        id = 5,
-        name = "Paneer Tikka Masala",
-        category = "lunch",
-        cookTime = "35 mins",
-        calories = 320,
-        servings = 3,
-        difficulty = "Medium",
-        protein = 18,
-        carbs = 12,
-        fats = 22,
-        fiber = 3,
-        image = "🧊",
-        ingredients = listOf(
-            "250g paneer, cubed",
-            "1 cup yogurt",
-            "1 tbsp tikka masala",
-            "2 tomatoes, pureed",
-            "1 onion, chopped",
-            "1 capsicum, cubed",
-            "1 inch ginger-garlic paste",
-            "1 tsp kasuri methi",
-            "1/2 cup cream",
-            "Oil for cooking"
-        ),
-        instructions = listOf(
-            "Marinate paneer and capsicum with yogurt, tikka masala, and salt for 30 minutes.",
-            "Grill or pan-fry marinated paneer until golden. Set aside.",
-            "Heat oil, add ginger-garlic paste and onions. Sauté until golden.",
-            "Add tomato puree, salt, and cook until oil separates.",
-            "Add grilled paneer, kasuri methi, and mix gently.",
-            "Add cream and simmer for 5 minutes.",
-            "Garnish with coriander and serve with naan or rice."
-        )
-    ),
-    Recipe(
-        id = 6,
-        name = "Rajma Masala (Kidney Bean Curry)",
-        category = "lunch",
-        cookTime = "40 mins",
-        calories = 240,
-        servings = 4,
-        difficulty = "Medium",
-        protein = 14,
-        carbs = 38,
-        fats = 4,
-        fiber = 11,
+        id = 6, name = "Rajma Masala", category = "lunch", cookTime = "40 mins",
+        calories = 240, servings = 4, difficulty = "Medium", protein = 14, carbs = 38, fats = 4, fiber = 11,
         image = "🫘",
-        ingredients = listOf(
-            "1 cup rajma (kidney beans), soaked overnight",
-            "2 onions, chopped",
-            "2 tomatoes, pureed",
-            "1 tbsp ginger-garlic paste",
-            "2 green chilies",
-            "1 tsp cumin seeds",
-            "1 tsp coriander powder",
-            "1 tsp garam masala",
-            "1/2 tsp red chili powder",
-            "Fresh coriander"
-        ),
-        instructions = listOf(
-            "Pressure cook soaked rajma with salt and water for 6-7 whistles until soft.",
-            "Heat oil, add cumin seeds and ginger-garlic paste.",
-            "Add onions and green chilies, sauté until golden brown.",
-            "Add tomato puree, coriander powder, red chili powder, and cook well.",
-            "Add cooked rajma with its water.",
-            "Simmer for 15-20 minutes until gravy thickens.",
-            "Add garam masala, garnish with coriander.",
-            "Serve hot with rice."
-        )
+        ingredients = listOf("1 cup rajma","onion","tomato","ginger-garlic","cumin","spices","coriander"),
+        instructions = listOf("Cook rajma.","Cook masala base.","Simmer with rajma 15-20 min.","Serve.")
     ),
     Recipe(
-        id = 7,
-        name = "Sprouts Chaat",
-        category = "snack",
-        cookTime = "10 mins",
-        calories = 150,
-        servings = 2,
-        difficulty = "Easy",
-        protein = 8,
-        carbs = 22,
-        fats = 3,
-        fiber = 6,
+        id = 15, name = "Quinoa Veg Pulao", category = "lunch", cookTime = "25 mins",
+        calories = 280, servings = 2, difficulty = "Easy", protein = 10, carbs = 45, fats = 6, fiber = 8,
+        image = "🥘",
+        ingredients = listOf("1 cup quinoa","mixed veggies","jeera","ginger","chili","salt","1 tsp oil"),
+        instructions = listOf("Rinse quinoa.","Temper jeera; add ginger/chili.","Sauté veggies.","Cook quinoa 1:2 water.","Serve with curd.")
+    ),
+    Recipe(
+        id = 16, name = "Chole (Healthy Chickpea Curry)", category = "lunch", cookTime = "35 mins",
+        calories = 290, servings = 3, difficulty = "Medium", protein = 14, carbs = 42, fats = 7, fiber = 11,
+        image = "🫛",
+        ingredients = listOf("1 cup chickpeas","onion","tomato","ginger-garlic","chole masala","cumin","lemon","coriander"),
+        instructions = listOf("Cook chickpeas.","Cook masala.","Simmer 10-12 min.","Finish with lemon + coriander.")
+    ),
+
+    // -------------------- SNACKS --------------------
+    Recipe(
+        id = 7, name = "Sprouts Chaat", category = "snack", cookTime = "10 mins",
+        calories = 150, servings = 2, difficulty = "Easy", protein = 8, carbs = 22, fats = 3, fiber = 6,
         image = "🥗",
-        ingredients = listOf(
-            "2 cups mixed sprouts (moong, chana)",
-            "1 onion, chopped",
-            "1 tomato, chopped",
-            "1 cucumber, chopped",
-            "1 green chili, chopped",
-            "Chaat masala",
-            "Lemon juice",
-            "Fresh coriander",
-            "Sev (optional)"
-        ),
-        instructions = listOf(
-            "Boil sprouts for 5 minutes until tender. Drain and cool.",
-            "In a bowl, mix sprouts, onions, tomatoes, and cucumber.",
-            "Add green chili, chaat masala, and salt.",
-            "Squeeze lemon juice and mix well.",
-            "Garnish with coriander and sev.",
-            "Serve immediately as a healthy snack."
-        )
+        ingredients = listOf("sprouts","onion","tomato","cucumber","chili","chaat masala","lemon","coriander"),
+        instructions = listOf("Boil sprouts 5 minutes.","Mix everything.","Add lemon and serve.")
     ),
     Recipe(
-        id = 8,
-        name = "Masala Roasted Makhana",
-        category = "snack",
-        cookTime = "10 mins",
-        calories = 120,
-        servings = 2,
-        difficulty = "Easy",
-        protein = 4,
-        carbs = 18,
-        fats = 4,
-        fiber = 2,
+        id = 8, name = "Masala Roasted Makhana", category = "snack", cookTime = "10 mins",
+        calories = 120, servings = 2, difficulty = "Easy", protein = 4, carbs = 18, fats = 4, fiber = 2,
         image = "🍿",
-        ingredients = listOf(
-            "2 cups makhana (fox nuts)",
-            "1 tsp ghee",
-            "1/2 tsp chaat masala",
-            "1/4 tsp turmeric",
-            "1/4 tsp red chili powder",
-            "Salt to taste",
-            "Curry leaves (optional)"
-        ),
-        instructions = listOf(
-            "Heat ghee in a pan on low flame.",
-            "Add makhana and roast for 5-7 minutes, stirring continuously.",
-            "Add curry leaves if using.",
-            "Once makhana becomes crispy, add all spices and salt.",
-            "Mix well to coat evenly.",
-            "Let it cool and store in an airtight container.",
-            "Enjoy as a healthy, crunchy snack."
-        )
+        ingredients = listOf("makhana","1 tsp ghee","chaat masala","turmeric","chili powder","salt"),
+        instructions = listOf("Roast 6-7 minutes.","Add spices.","Cool and eat.")
     ),
     Recipe(
-        id = 9,
-        name = "Vegetable Cutlets",
-        category = "snack",
-        cookTime = "25 mins",
-        calories = 180,
-        servings = 4,
-        difficulty = "Medium",
-        protein = 6,
-        carbs = 26,
-        fats = 6,
-        fiber = 4,
-        image = "🥔",
-        ingredients = listOf(
-            "3 potatoes, boiled and mashed",
-            "1/2 cup mixed vegetables (carrots, peas, beans)",
-            "2 tbsp bread crumbs",
-            "1 green chili, chopped",
-            "1 tsp ginger paste",
-            "1/2 tsp garam masala",
-            "Fresh coriander",
-            "Salt to taste",
-            "Oil for shallow frying"
-        ),
-        instructions = listOf(
-            "Mix mashed potatoes with boiled vegetables, green chili, ginger, and spices.",
-            "Add coriander and bread crumbs, mix well.",
-            "Shape into round or oval patties.",
-            "Heat oil in a pan.",
-            "Shallow fry cutlets until golden brown on both sides.",
-            "Drain on paper towels.",
-            "Serve hot with green chutney or ketchup."
-        )
+        id = 17, name = "Greek Yogurt Fruit Bowl", category = "snack", cookTime = "5 mins",
+        calories = 190, servings = 1, difficulty = "Easy", protein = 12, carbs = 22, fats = 5, fiber = 4,
+        image = "🍓",
+        ingredients = listOf("1 cup Greek yogurt","fruits","chia/flax seeds","honey (optional)"),
+        instructions = listOf("Add yogurt.","Top with fruits + seeds.","Optional honey.")
     ),
     Recipe(
-        id = 10,
-        name = "Palak Paneer",
-        category = "dinner",
-        cookTime = "30 mins",
-        calories = 280,
-        servings = 3,
-        difficulty = "Medium",
-        protein = 16,
-        carbs = 10,
-        fats = 20,
-        fiber = 4,
+        id = 18, name = "Paneer & Cucumber Sandwich", category = "snack", cookTime = "10 mins",
+        calories = 260, servings = 1, difficulty = "Easy", protein = 16, carbs = 26, fats = 10, fiber = 5,
+        image = "🥪",
+        ingredients = listOf("whole wheat bread","paneer","cucumber","mint chutney","salt/pepper"),
+        instructions = listOf("Season paneer.","Layer cucumber + paneer.","Toast optional; serve.")
+    ),
+
+    // -------------------- DINNER --------------------
+    Recipe(
+        id = 10, name = "Palak Paneer", category = "dinner", cookTime = "30 mins",
+        calories = 280, servings = 3, difficulty = "Medium", protein = 16, carbs = 10, fats = 20, fiber = 4,
         image = "🥬",
-        ingredients = listOf(
-            "250g paneer, cubed",
-            "400g spinach (palak)",
-            "1 onion, chopped",
-            "2 tomatoes, chopped",
-            "1 tbsp ginger-garlic paste",
-            "2 green chilies",
-            "1 tsp cumin seeds",
-            "1/2 tsp garam masala",
-            "2 tbsp cream",
-            "Salt to taste"
-        ),
-        instructions = listOf(
-            "Blanch spinach in boiling water for 2 minutes, then put in cold water.",
-            "Blend spinach with green chilies to a smooth puree.",
-            "Heat oil, add cumin seeds and ginger-garlic paste.",
-            "Add onions and sauté until golden.",
-            "Add tomatoes and cook until mushy.",
-            "Add spinach puree, salt, and cook for 5 minutes.",
-            "Add paneer cubes and garam masala, simmer for 5 minutes.",
-            "Add cream, mix gently, and serve with roti."
-        )
+        ingredients = listOf("paneer","spinach","onion","tomato","ginger-garlic","cumin","garam masala","salt"),
+        instructions = listOf("Blanch spinach; blend.","Cook masala.","Add spinach; simmer.","Add paneer; finish spices.")
     ),
     Recipe(
-        id = 11,
-        name = "Chicken Curry",
-        category = "dinner",
-        cookTime = "40 mins",
-        calories = 320,
-        servings = 4,
-        difficulty = "Medium",
-        protein = 35,
-        carbs = 8,
-        fats = 18,
-        fiber = 2,
+        id = 11, name = "Chicken Curry (Home Style)", category = "dinner", cookTime = "40 mins",
+        calories = 320, servings = 4, difficulty = "Medium", protein = 35, carbs = 8, fats = 18, fiber = 2,
         image = "🍗",
-        ingredients = listOf(
-            "500g chicken, cut into pieces",
-            "2 onions, chopped",
-            "2 tomatoes, pureed",
-            "1 tbsp ginger-garlic paste",
-            "1 tsp cumin seeds",
-            "2 tsp coriander powder",
-            "1 tsp garam masala",
-            "1/2 tsp turmeric",
-            "1 tsp red chili powder",
-            "Curry leaves",
-            "Fresh coriander"
-        ),
-        instructions = listOf(
-            "Heat oil, add cumin seeds and curry leaves.",
-            "Add onions and sauté until golden brown.",
-            "Add ginger-garlic paste and sauté for 1 minute.",
-            "Add tomato puree and all spices, cook until oil separates.",
-            "Add chicken pieces and mix well to coat with masala.",
-            "Add 1 cup water, salt, and cover. Cook for 25-30 minutes until chicken is tender.",
-            "Garnish with coriander and serve with rice or roti."
-        )
+        ingredients = listOf("chicken","onion","tomato","ginger-garlic","spices","curry leaves","coriander"),
+        instructions = listOf("Cook onion masala.","Add chicken.","Simmer covered until tender.","Garnish and serve.")
     ),
     Recipe(
-        id = 12,
-        name = "Vegetable Khichdi",
-        category = "dinner",
-        cookTime = "25 mins",
-        calories = 210,
-        servings = 3,
-        difficulty = "Easy",
-        protein = 8,
-        carbs = 38,
-        fats = 4,
-        fiber = 6,
+        id = 12, name = "Vegetable Khichdi", category = "dinner", cookTime = "25 mins",
+        calories = 210, servings = 3, difficulty = "Easy", protein = 8, carbs = 38, fats = 4, fiber = 6,
         image = "🍛",
-        ingredients = listOf(
-            "1/2 cup rice",
-            "1/2 cup moong dal",
-            "Mixed vegetables (carrots, peas, beans)",
-            "1 tsp cumin seeds",
-            "1/2 tsp turmeric",
-            "1 tsp ginger, chopped",
-            "2 green chilies",
-            "Salt to taste",
-            "Ghee for tempering"
-        ),
-        instructions = listOf(
-            "Wash rice and dal together.",
-            "Heat 1 tsp ghee, add cumin seeds and ginger.",
-            "Add vegetables and sauté for 2 minutes.",
-            "Add rice, dal, turmeric, salt, and 4 cups water.",
-            "Pressure cook for 3-4 whistles until soft and mushy.",
-            "Make a tadka with ghee, cumin, and green chilies.",
-            "Pour over khichdi and serve with yogurt or pickle."
-        )
+        ingredients = listOf("rice","moong dal","veggies","jeera","turmeric","ginger","salt","ghee"),
+        instructions = listOf("Wash rice+dal.","Cook with veggies and spices.","Pressure cook soft.","Finish with ghee.")
+    ),
+    Recipe(
+        id = 19, name = "Tandoori Fish (Pan/OTG)", category = "dinner", cookTime = "25 mins",
+        calories = 260, servings = 2, difficulty = "Easy", protein = 30, carbs = 6, fats = 12, fiber = 1,
+        image = "🐟",
+        ingredients = listOf("fish fillet","curd","tandoori masala","lemon","salt","1 tsp oil"),
+        instructions = listOf("Marinate 15 minutes.","Pan grill or bake.","Serve with salad.")
+    ),
+    Recipe(
+        id = 20, name = "Mixed Veg Soup (Light Dinner)", category = "dinner", cookTime = "20 mins",
+        calories = 140, servings = 2, difficulty = "Easy", protein = 6, carbs = 22, fats = 3, fiber = 5,
+        image = "🥣",
+        ingredients = listOf("carrot","beans","tomato","garlic","salt","pepper","water/stock"),
+        instructions = listOf("Sauté garlic.","Add veggies + stock.","Boil 12-15 minutes.","Season and serve.")
     )
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipesScreen(navController: NavController) {
+    val context = LocalContext.current
     var selectedCategory by remember { mutableStateOf("all") }
     var searchQuery by remember { mutableStateOf("") }
     var selectedRecipe by remember { mutableStateOf<Recipe?>(null) }
     var favorites by remember { mutableStateOf(setOf<Int>()) }
+    var selectedFilter by remember { mutableStateOf(RecipeFilter.NONE) }
+
+    LaunchedEffect(Unit) {
+        favorites = loadFavorites(context)
+    }
+
+    fun toggleFavorite(id: Int) {
+        favorites = if (favorites.contains(id)) favorites - id else favorites + id
+        saveFavorites(context, favorites)
+    }
 
     val categories = listOf(
         "all" to "🍽️ All",
+        "favorites" to "❤️ Favorites",
         "breakfast" to "🌅 Breakfast",
         "lunch" to "☀️ Lunch",
         "snack" to "🍪 Snacks",
         "dinner" to "🌙 Dinner"
     )
 
-    val filteredRecipes = recipes.filter {
-        (selectedCategory == "all" || it.category == selectedCategory) &&
-                it.name.contains(searchQuery, ignoreCase = true)
-    }
+    val filteredRecipes = recipes
+        .asSequence()
+        .filter { recipe ->
+            when (selectedCategory) {
+                "all" -> true
+                "favorites" -> favorites.contains(recipe.id)
+                else -> recipe.category == selectedCategory
+            }
+        }
+        .filter { it.name.contains(searchQuery, ignoreCase = true) }
+        .filter { recipe ->
+            when (selectedFilter) {
+                RecipeFilter.NONE -> true
+                RecipeFilter.HIGH_PROTEIN -> recipe.protein >= 15
+                RecipeFilter.LOW_CARB -> recipe.carbs <= 20
+                RecipeFilter.HIGH_FIBER -> recipe.fiber >= 7
+                RecipeFilter.LOW_CAL -> recipe.calories <= 200
+            }
+        }
+        .toList()
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+
+    BackHandler(enabled = selectedRecipe != null) { selectedRecipe = null }
 
     Scaffold(
         bottomBar = { BottomNavigationBar(navController = navController) }
@@ -493,40 +269,48 @@ fun RecipesScreen(navController: NavController) {
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-                .background(Color(0xFFF0F2F5))
+                .background(Color(0xFFF3F5F7))
         ) {
-            Header(searchQuery, onSearchQueryChange = { searchQuery = it })
+            Header(searchQuery = searchQuery, onSearchQueryChange = { searchQuery = it })
+
             CategoryTabs(
                 categories = categories,
                 selectedCategory = selectedCategory,
                 onCategorySelected = { selectedCategory = it }
             )
-            RecipesGrid(
-                recipes = filteredRecipes,
-                favorites = favorites,
-                onRecipeClick = { selectedRecipe = it },
-                onToggleFavorite = {
-                    favorites = if (favorites.contains(it)) {
-                        favorites - it
-                    } else {
-                        favorites + it
-                    }
-                }
-            )
-        }
 
-        if (selectedRecipe != null) {
-            RecipeDetailDialog(
+            FiltersRow(
+                selectedFilter = selectedFilter,
+                onFilterSelected = { selectedFilter = it }
+            )
+
+            if (filteredRecipes.isEmpty()) {
+                EmptyState(
+                    isFavorites = selectedCategory == "favorites"
+                )
+            } else {
+                RecipesGrid(
+                    recipes = filteredRecipes,
+                    favorites = favorites,
+                    onRecipeClick = { selectedRecipe = it },
+                    onToggleFavorite = { toggleFavorite(it) }
+                )
+            }
+        }
+    }
+
+    if (selectedRecipe != null) {
+        ModalBottomSheet(
+            onDismissRequest = { selectedRecipe = null },
+            sheetState = sheetState,
+            containerColor = Color.White,
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        ) {
+            RecipeDetailSheet(
                 recipe = selectedRecipe!!,
                 isFavorite = favorites.contains(selectedRecipe!!.id),
-                onDismiss = { selectedRecipe = null },
-                onToggleFavorite = {
-                    favorites = if (favorites.contains(it)) {
-                        favorites - it
-                    } else {
-                        favorites + it
-                    }
-                }
+                onClose = { selectedRecipe = null },
+                onToggleFavorite = { toggleFavorite(it) }
             )
         }
     }
@@ -545,44 +329,27 @@ private fun Header(searchQuery: String, onSearchQueryChange: (String) -> Unit) {
             .padding(16.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.FoodBank,
-                contentDescription = "Recipes",
-                tint = Color.White,
-                modifier = Modifier.size(28.dp)
-            )
+            Icon(Icons.Default.Restaurant, contentDescription = "Recipes", tint = Color.White, modifier = Modifier.size(28.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Recipes",
-                color = Color.White,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text("Recipes", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Healthy Indian recipes for every meal",
-            color = Color.White.copy(alpha = 0.9f),
-            fontSize = 16.sp
-        )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(6.dp))
+        Text("Healthy Indian recipes for every meal", color = Color.White.copy(alpha = 0.9f), fontSize = 14.sp)
+        Spacer(modifier = Modifier.height(14.dp))
+
         TextField(
             value = searchQuery,
             onValueChange = onSearchQueryChange,
             placeholder = { Text("Search recipes...", color = Color.Gray) },
-            leadingIcon = {
-                Icon(
-                    Icons.Default.Search,
-                    contentDescription = "Search",
-                    tint = Color.Gray
-                )
-            },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = Color.Gray) },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(14.dp),
             colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White,
+                disabledContainerColor = Color.White,
                 focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-
+                unfocusedIndicatorColor = Color.Transparent
             )
         )
     }
@@ -594,43 +361,77 @@ private fun CategoryTabs(
     selectedCategory: String,
     onCategorySelected: (String) -> Unit
 ) {
-    val selectedTabIndex = categories.indexOfFirst { it.first == selectedCategory }
+    val selectedTabIndex = categories.indexOfFirst { it.first == selectedCategory }.coerceAtLeast(0)
 
-    TabRow(
+    ScrollableTabRow(
         selectedTabIndex = selectedTabIndex,
         containerColor = Color.White,
         contentColor = Color.Black,
+        edgePadding = 12.dp,
         indicator = { tabPositions ->
-            if (selectedTabIndex != -1) {
-                TabRowDefaults.Indicator(
-                    Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                    color = Color(0xFFFFB74D)
-                )
-            }
+            TabRowDefaults.Indicator(
+                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                color = Color(0xFFFFB74D)
+            )
         }
     ) {
         categories.forEachIndexed { index, (id, label) ->
             Tab(
                 selected = selectedTabIndex == index,
                 onClick = { onCategorySelected(id) },
-                text = { Text(label) }
+                text = {
+                    Text(
+                        text = label,
+                        fontSize = 14.sp,
+                        fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Medium
+                    )
+                }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FiltersRow(
+    selectedFilter: RecipeFilter,
+    onFilterSelected: (RecipeFilter) -> Unit
+) {
+    val scroll = rememberScrollState()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .horizontalScroll(scroll),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        RecipeFilter.entries.forEach { filter ->
+            FilterChip(
+                selected = selectedFilter == filter,
+                onClick = { onFilterSelected(filter) },
+                label = { Text(filter.label) },
+                leadingIcon = if (selectedFilter == filter) {
+                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                } else null
             )
         }
     }
 }
 
 @Composable
-private fun RecipesGrid(
+private fun ColumnScope.RecipesGrid(
     recipes: List<Recipe>,
     favorites: Set<Int>,
     onRecipeClick: (Recipe) -> Unit,
     onToggleFavorite: (Int) -> Unit
 ) {
     LazyVerticalGrid(
+        modifier = Modifier.weight(1f),
         columns = GridCells.Fixed(2),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         items(recipes) { recipe ->
             RecipeCard(
@@ -651,8 +452,8 @@ private fun RecipeCard(
     onToggleFavorite: () -> Unit
 ) {
     Card(
-        modifier = Modifier.clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
         elevation = CardDefaults.cardElevation(4.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
@@ -668,222 +469,265 @@ private fun RecipeCard(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = recipe.image, fontSize = 56.sp)
+                Text(text = recipe.image, fontSize = 52.sp)
+
                 IconButton(
                     onClick = onToggleFavorite,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
                 ) {
                     Icon(
                         imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                         contentDescription = "Favorite",
-                        tint = if (isFavorite) Color.Red else Color.Gray
+                        tint = if (isFavorite) Color(0xFFE53935) else Color.Gray
                     )
                 }
             }
+
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(
                     text = recipe.name,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    maxLines = 2
+                    fontSize = 15.sp,
+                    maxLines = 2,
+                    color = Color(0xFF1F2937)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Schedule,
-                        contentDescription = "Cook Time",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = recipe.cookTime, fontSize = 12.sp, color = Color.Gray)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Whatshot,
-                        contentDescription = "Calories",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "${recipe.calories} kcal", fontSize = 12.sp, color = Color.Gray)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Group,
-                        contentDescription = "Servings",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "${recipe.servings} servings", fontSize = 12.sp, color = Color.Gray)
-                }
+                MiniRow(Icons.Default.Schedule, recipe.cookTime)
+                MiniRow(Icons.Default.Whatshot, "${recipe.calories} kcal")
+                MiniRow(Icons.Default.Group, "${recipe.servings} servings")
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = recipe.difficulty,
-                    color = if (recipe.difficulty == "Easy") Color(0xFF388E3C) else Color(0xFFF57C00),
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            if (recipe.difficulty == "Easy") Color(0xFFC8E6C9) else Color(
-                                0xFFFFE0B2
-                            )
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                    fontSize = 12.sp
-                )
+                DifficultyChip(recipe.difficulty)
             }
         }
     }
 }
 
 @Composable
-fun RecipeDetailDialog(
+private fun MiniRow(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(text = text, fontSize = 12.sp, color = Color.Gray)
+    }
+}
+
+@Composable
+private fun DifficultyChip(difficulty: String) {
+    val bg = if (difficulty == "Easy") Color(0xFFC8E6C9) else Color(0xFFFFE0B2)
+    val fg = if (difficulty == "Easy") Color(0xFF2E7D32) else Color(0xFFEF6C00)
+
+    Text(
+        text = difficulty,
+        color = fg,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Medium,
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(bg)
+            .padding(horizontal = 10.dp, vertical = 5.dp)
+    )
+}
+
+@Composable
+private fun EmptyState(isFavorites: Boolean) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            if (isFavorites) Icons.Default.FavoriteBorder else Icons.Default.SearchOff,
+            contentDescription = null,
+            tint = Color.Gray,
+            modifier = Modifier.size(48.dp)
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            if (isFavorites) "No favorites yet" else "No recipes found",
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+            color = Color(0xFF374151)
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            if (isFavorites) "Tap ❤️ on any recipe to save it here." else "Try another keyword, category, or filter.",
+            fontSize = 14.sp,
+            color = Color.Gray,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun RecipeDetailSheet(
     recipe: Recipe,
     isFavorite: Boolean,
-    onDismiss: () -> Unit,
+    onClose: () -> Unit,
     onToggleFavorite: (Int) -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(shape = RoundedCornerShape(16.dp)) {
-            Column(
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 18.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(210.dp)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color(0xFFFFA726), Color(0xFFFF9800))
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = recipe.image, fontSize = 92.sp)
+
+            IconButton(
+                onClick = onClose,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
+                    .align(Alignment.TopEnd)
+                    .padding(14.dp)
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.25f))
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(Color(0xFFFFA726), Color(0xFFFF9800))
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = recipe.image, fontSize = 100.sp)
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(8.dp)
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
-                    }
-                }
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(recipe.name, fontWeight = FontWeight.Bold, fontSize = 24.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        InfoChip("Cook Time", recipe.cookTime, Icons.Default.Schedule)
-                        InfoChip("Calories", "${recipe.calories} kcal", Icons.Default.Whatshot)
-                        InfoChip("Servings", "${recipe.servings} servings", Icons.Default.Group)
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    NutritionInfo(recipe)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Ingredients", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            recipe.ingredients.forEach {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        Icons.Default.FiberManualRecord,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(8.dp),
-                                        tint = Color(0xFFFFB74D)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(it)
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                            }
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+            }
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(recipe.name, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = Color(0xFF111827))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                InfoChip("Time", recipe.cookTime, Icons.Default.Schedule)
+                InfoChip("Calories", "${recipe.calories} kcal", Icons.Default.Whatshot)
+                InfoChip("Servings", "${recipe.servings}", Icons.Default.Group)
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+            NutritionCard(recipe)
+
+            Spacer(modifier = Modifier.height(16.dp))
+            SectionTitle("Ingredients")
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    recipe.ingredients.forEach {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.FiberManualRecord, contentDescription = null, modifier = Modifier.size(8.dp), tint = Color(0xFFFFB74D))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(it, color = Color(0xFF374151))
                         }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Instructions", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    recipe.instructions.forEachIndexed { index, instruction ->
-                        Row(modifier = Modifier.padding(bottom = 8.dp)) {
-                            Text(
-                                text = "${index + 1}.",
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFFFB74D),
-                                fontSize = 18.sp
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(instruction)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = { onToggleFavorite(recipe.id) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFavorite) Color.Red else Color(0xFFFFB74D)
-                        )
-                    ) {
-                        Icon(
-                            imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                            contentDescription = "Favorite"
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (isFavorite) "Remove from Favorites" else "Add to Favorites")
+                        Spacer(modifier = Modifier.height(6.dp))
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            SectionTitle("Instructions")
+            recipe.instructions.forEachIndexed { index, instruction ->
+                Row(modifier = Modifier.padding(bottom = 10.dp), verticalAlignment = Alignment.Top) {
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFFFB74D)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("${index + 1}", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(instruction, color = Color(0xFF374151), modifier = Modifier.padding(top = 3.dp))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+            Button(
+                onClick = { onToggleFavorite(recipe.id) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isFavorite) Color(0xFFE53935) else Color(0xFFFFB74D)
+                ),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    contentDescription = "Favorite"
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(if (isFavorite) "Remove from Favorites" else "Add to Favorites")
+            }
         }
     }
+}
+
+@Composable
+private fun SectionTitle(title: String) {
+    Text(title, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF111827))
+    Spacer(modifier = Modifier.height(8.dp))
 }
 
 @Composable
 private fun InfoChip(label: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(icon, contentDescription = label, tint = Color(0xFFFFB74D))
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(value, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        Text(label, fontSize = 12.sp, color = Color.Gray)
-    }
-}
-
-@Composable
-private fun NutritionInfo(recipe: Recipe) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF5F5F5)
-        )
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceAround
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            NutritionChip("Protein", "${recipe.protein}g", Color(0xFF42A5F5))
-            NutritionChip("Carbs", "${recipe.carbs}g", Color(0xFF26A69A))
-            NutritionChip("Fats", "${recipe.fats}g", Color(0xFF7E57C2))
-            NutritionChip("Fiber", "${recipe.fiber}g", Color(0xFF66BB6A))
+            Icon(icon, contentDescription = null, tint = Color(0xFFFFB74D), modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Column {
+                Text(value, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF111827))
+                Text(label, fontSize = 11.sp, color = Color.Gray)
+            }
         }
     }
 }
 
 @Composable
-private fun NutritionChip(label: String, value: String, color: Color) {
+private fun NutritionCard(recipe: Recipe) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            Macro("Protein", "${recipe.protein}g", Color(0xFF1D4ED8))
+            Macro("Carbs", "${recipe.carbs}g", Color(0xFF0F766E))
+            Macro("Fats", "${recipe.fats}g", Color(0xFF6D28D9))
+            Macro("Fiber", "${recipe.fiber}g", Color(0xFF15803D))
+        }
+    }
+}
+
+@Composable
+private fun Macro(label: String, value: String, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = color)
-        Text(label, fontSize = 12.sp, color = Color.Gray)
+        Text(value, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = color)
+        Text(label, fontSize = 11.sp, color = Color.Gray)
     }
 }
