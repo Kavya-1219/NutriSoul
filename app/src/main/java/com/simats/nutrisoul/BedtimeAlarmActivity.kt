@@ -1,5 +1,6 @@
 package com.simats.nutrisoul
 
+import android.content.Context
 import android.media.AudioAttributes
 import android.media.Ringtone
 import android.media.RingtoneManager
@@ -7,6 +8,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -35,6 +37,8 @@ class BedtimeAlarmActivity : ComponentActivity() {
 
         startAlarmSoundAndVibration()
 
+        val userEmail = intent.getStringExtra("USER_EMAIL") ?: ""
+
         setContent {
             BedtimePopupUI(
                 onStartWindDown = {
@@ -43,8 +47,10 @@ class BedtimeAlarmActivity : ComponentActivity() {
                 },
                 onSnooze10 = {
                     stopAlarmSoundAndVibration()
-                    MindCarePrefs.saveSnoozeUntil(this, System.currentTimeMillis() + 10 * 60 * 1000L)
-                    scheduleSnoozeReminder(this, 10)
+                    if (userEmail.isNotBlank()) {
+                        MindCarePrefs.saveSnoozeUntil(this, userEmail, System.currentTimeMillis() + 10 * 60 * 1000L)
+                        scheduleSnoozeReminder(this, userEmail, 10)
+                    }
                     finish()
                 },
                 onDismiss = {
@@ -72,7 +78,13 @@ class BedtimeAlarmActivity : ComponentActivity() {
             ringtone?.play()
         } catch (_: Exception) {}
 
-        vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
+        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vibratorManager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
 
         try {
             val pattern = longArrayOf(0, 800, 400, 800, 400, 800)

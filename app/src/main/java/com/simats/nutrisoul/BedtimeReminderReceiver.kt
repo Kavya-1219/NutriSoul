@@ -12,40 +12,43 @@ import androidx.core.app.NotificationCompat
 class BedtimeReminderReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {
-        // Snooze check
-        val snoozeUntil = MindCarePrefs.getSnoozeUntil(context)
+        val userEmail = intent?.getStringExtra("USER_EMAIL") ?: return
+
+        // If user snoozed and snooze hasn't expired, skip showing again.
+        val snoozeUntil = MindCarePrefs.getSnoozeUntil(context, userEmail)
         if (snoozeUntil > System.currentTimeMillis()) {
-            rescheduleNext(context)
+            rescheduleNext(context, userEmail)
             return
         }
 
-        // Set pending (so MindCare shows dialog when opened)
-        MindCarePrefs.setPendingWindDown(context, true)
+        // Mark wind-down pending so next time user opens Mind Care screen, popup shows
+        MindCarePrefs.setPendingWindDown(context, userEmail, true)
 
-        // Launch full-screen alarm UI (works when using other apps + lock screen)
-        launchAlarmActivity(context)
+        // Launch full-screen alarm UI
+        launchAlarmActivity(context, userEmail)
 
-        // Full-screen notification (backup + required for modern UX)
-        showFullScreenNotification(context)
+        // Full-screen notification
+        showFullScreenNotification(context, userEmail)
 
         // Reschedule next day
-        rescheduleNext(context)
+        rescheduleNext(context, userEmail)
     }
 
-    private fun rescheduleNext(context: Context) {
-        if (!MindCarePrefs.loadReminderEnabled(context)) return
-        val schedule = MindCarePrefs.loadSchedule(context)
-        scheduleBedtimeReminder(context, schedule.bedtime)
+    private fun rescheduleNext(context: Context, userEmail: String) {
+        if (!MindCarePrefs.loadReminderEnabled(context, userEmail)) return
+        val schedule = MindCarePrefs.loadSchedule(context, userEmail)
+        scheduleBedtimeReminder(context, userEmail, schedule.bedtime)
     }
 
-    private fun launchAlarmActivity(context: Context) {
+    private fun launchAlarmActivity(context: Context, userEmail: String) {
         val i = Intent(context, BedtimeAlarmActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            putExtra("USER_EMAIL", userEmail)
         }
         context.startActivity(i)
     }
 
-    private fun showFullScreenNotification(context: Context) {
+    private fun showFullScreenNotification(context: Context, userEmail: String) {
         val channelId = "bedtime_reminders"
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -61,6 +64,7 @@ class BedtimeReminderReceiver : BroadcastReceiver() {
 
         val fullScreenIntent = Intent(context, BedtimeAlarmActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            putExtra("USER_EMAIL", userEmail)
         }
 
         val fullScreenPI = PendingIntent.getActivity(

@@ -49,18 +49,24 @@ data class Recipe(
 )
 
 private const val PREFS_NAME = "recipes_prefs"
-private const val KEY_FAVORITES = "favorite_recipe_ids"
 
-private fun loadFavorites(context: Context): Set<Int> {
+private fun favoritesKeyFor(email: String): String {
+    val safe = email.trim().lowercase().replace("[^a-z0-9@._-]".toRegex(), "_")
+    return "favorite_recipe_ids__$safe"
+}
+
+private fun loadFavorites(context: Context, email: String): Set<Int> {
+    if (email.isBlank()) return emptySet()
     val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    val raw = prefs.getStringSet(KEY_FAVORITES, emptySet()) ?: emptySet()
+    val raw = prefs.getStringSet(favoritesKeyFor(email), emptySet()) ?: emptySet()
     return raw.mapNotNull { it.toIntOrNull() }.toSet()
 }
 
-private fun saveFavorites(context: Context, favorites: Set<Int>) {
+private fun saveFavorites(context: Context, email: String, favorites: Set<Int>) {
+    if (email.isBlank()) return
     val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     prefs.edit()
-        .putStringSet(KEY_FAVORITES, favorites.map { it.toString() }.toSet())
+        .putStringSet(favoritesKeyFor(email), favorites.map { it.toString() }.toSet())
         .apply()
 }
 
@@ -210,7 +216,7 @@ private val recipes = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecipesScreen(navController: NavController) {
+fun RecipesScreen(navController: NavController, userEmail: String) {
     val context = LocalContext.current
     var selectedCategory by remember { mutableStateOf("all") }
     var searchQuery by remember { mutableStateOf("") }
@@ -218,13 +224,21 @@ fun RecipesScreen(navController: NavController) {
     var favorites by remember { mutableStateOf(setOf<Int>()) }
     var selectedFilter by remember { mutableStateOf(RecipeFilter.NONE) }
 
-    LaunchedEffect(Unit) {
-        favorites = loadFavorites(context)
+    LaunchedEffect(userEmail) {
+        // Clear instantly so you never see old user’s favorites even for a moment
+        favorites = emptySet()
+        searchQuery = ""
+        selectedCategory = "all"
+        selectedRecipe = null
+        selectedFilter = RecipeFilter.NONE
+
+        favorites = loadFavorites(context, userEmail)
     }
 
     fun toggleFavorite(id: Int) {
+        if (userEmail.isBlank()) return
         favorites = if (favorites.contains(id)) favorites - id else favorites + id
-        saveFavorites(context, favorites)
+        saveFavorites(context, userEmail, favorites)
     }
 
     val categories = listOf(

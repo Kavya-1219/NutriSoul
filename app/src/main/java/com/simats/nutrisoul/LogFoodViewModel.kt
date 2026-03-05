@@ -39,7 +39,6 @@ import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.util.Calendar
 import javax.inject.Inject
-import kotlin.math.roundToInt
 
 data class LogFoodUiState(
     val isLoading: Boolean = false,
@@ -200,15 +199,15 @@ class LogFoodViewModel @Inject constructor(
             val gramsSafe = grams.coerceAtLeast(1.0)
             val qty100 = gramsSafe / 100.0
 
-            // 1) Save to food_logs (per 100g + qty100)
+            // 1) Save to food_logs (now storing Float to preserve precision)
             foodLogRepository.addLog(
                 FoodLogEntity(
                     userEmail = email,
                     name = foodItem.name,
-                    caloriesPerUnit = foodItem.calories.roundToInt(),
-                    proteinPerUnit = foodItem.protein.roundToInt(),
-                    carbsPerUnit = foodItem.carbs.roundToInt(),
-                    fatsPerUnit = foodItem.fats.roundToInt(),
+                    caloriesPerUnit = foodItem.calories.toFloat(),
+                    proteinPerUnit = foodItem.protein.toFloat(),
+                    carbsPerUnit = foodItem.carbs.toFloat(),
+                    fatsPerUnit = foodItem.fats.toFloat(),
                     quantity = qty100.toFloat(),
                     unit = "100g",
                     timestampMillis = System.currentTimeMillis()
@@ -245,11 +244,11 @@ class LogFoodViewModel @Inject constructor(
             val qty100 = gramsSafe / 100.0
             val per100Factor = 100.0 / gramsSafe
 
-            // Convert totals into per-100g storage
-            val caloriesPer100 = (calories * per100Factor).roundToInt()
-            val proteinPer100 = (protein * per100Factor).roundToInt()
-            val carbsPer100 = (carbs * per100Factor).roundToInt()
-            val fatsPer100 = (fats * per100Factor).roundToInt()
+            // Convert totals into per-100g storage as Float
+            val caloriesPer100 = (calories * per100Factor).toFloat()
+            val proteinPer100 = (protein * per100Factor).toFloat()
+            val carbsPer100 = (carbs * per100Factor).toFloat()
+            val fatsPer100 = (fats * per100Factor).toFloat()
 
             // 1) Save to food_logs
             foodLogRepository.addLog(

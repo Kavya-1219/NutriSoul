@@ -14,33 +14,36 @@ object MindCarePrefs {
     private const val KEY_LOGS = "sleep_logs"
     private const val KEY_PENDING_WINDDOWN = "pending_winddown"
     private const val KEY_SNOOZE_UNTIL = "snooze_until"
+    private const val KEY_LAST_USER = "last_user"
 
-    fun saveSchedule(context: Context, schedule: SleepSchedule) {
+    private fun k(base: String, user: String) = "${base}_${user.lowercase().trim()}"
+
+    fun saveSchedule(context: Context, user: String, schedule: SleepSchedule) {
         val sp = context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
         sp.edit()
-            .putString(KEY_BEDTIME, schedule.bedtime.toString())   // "22:00"
-            .putString(KEY_WAKETIME, schedule.wakeTime.toString()) // "06:00"
+            .putString(k(KEY_BEDTIME, user), schedule.bedtime.toString())
+            .putString(k(KEY_WAKETIME, user), schedule.wakeTime.toString())
             .apply()
     }
 
-    fun loadSchedule(context: Context): SleepSchedule {
+    fun loadSchedule(context: Context, user: String): SleepSchedule {
         val sp = context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
-        val bed = sp.getString(KEY_BEDTIME, "22:00") ?: "22:00"
-        val wake = sp.getString(KEY_WAKETIME, "06:00") ?: "06:00"
+        val bed = sp.getString(k(KEY_BEDTIME, user), "22:00") ?: "22:00"
+        val wake = sp.getString(k(KEY_WAKETIME, user), "06:00") ?: "06:00"
         return SleepSchedule(LocalTime.parse(bed), LocalTime.parse(wake))
     }
 
-    fun saveReminderEnabled(context: Context, enabled: Boolean) {
+    fun saveReminderEnabled(context: Context, user: String, enabled: Boolean) {
         val sp = context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
-        sp.edit().putBoolean(KEY_REMINDER, enabled).apply()
+        sp.edit().putBoolean(k(KEY_REMINDER, user), enabled).apply()
     }
 
-    fun loadReminderEnabled(context: Context): Boolean {
+    fun loadReminderEnabled(context: Context, user: String): Boolean {
         val sp = context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
-        return sp.getBoolean(KEY_REMINDER, false)
+        return sp.getBoolean(k(KEY_REMINDER, user), false)
     }
 
-    fun saveLogs(context: Context, logs: List<SleepLog>) {
+    fun saveLogs(context: Context, user: String, logs: List<SleepLog>) {
         val sp = context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
         val arr = JSONArray()
         logs.sortedByDescending { it.date }.take(7).forEach { log ->
@@ -53,12 +56,12 @@ object MindCarePrefs {
             obj.put("quality", log.quality.name)
             arr.put(obj)
         }
-        sp.edit().putString(KEY_LOGS, arr.toString()).apply()
+        sp.edit().putString(k(KEY_LOGS, user), arr.toString()).apply()
     }
 
-    fun loadLogs(context: Context): List<SleepLog> {
+    fun loadLogs(context: Context, user: String): List<SleepLog> {
         val sp = context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
-        val raw = sp.getString(KEY_LOGS, null) ?: return emptyList()
+        val raw = sp.getString(k(KEY_LOGS, user), null) ?: return emptyList()
         return try {
             val arr = JSONArray(raw)
             val list = mutableListOf<SleepLog>()
@@ -78,30 +81,41 @@ object MindCarePrefs {
         }
     }
 
-    fun setPendingWindDown(context: Context, pending: Boolean) {
+    fun setPendingWindDown(context: Context, user: String, pending: Boolean) {
         val sp = context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
-        sp.edit().putBoolean(KEY_PENDING_WINDDOWN, pending).apply()
+        sp.edit().putBoolean(k(KEY_PENDING_WINDDOWN, user), pending).apply()
     }
 
-    fun consumePendingWindDown(context: Context): Boolean {
+    fun consumePendingWindDown(context: Context, user: String): Boolean {
         val sp = context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
-        val pending = sp.getBoolean(KEY_PENDING_WINDDOWN, false)
-        if (pending) sp.edit().putBoolean(KEY_PENDING_WINDDOWN, false).apply()
+        val key = k(KEY_PENDING_WINDDOWN, user)
+        val pending = sp.getBoolean(key, false)
+        if (pending) sp.edit().putBoolean(key, false).apply()
         return pending
     }
 
-    fun saveSnoozeUntil(context: Context, millis: Long) {
+    fun saveSnoozeUntil(context: Context, user: String, millis: Long) {
         val sp = context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
-        sp.edit().putLong(KEY_SNOOZE_UNTIL, millis).apply()
+        sp.edit().putLong(k(KEY_SNOOZE_UNTIL, user), millis).apply()
     }
 
-    fun getSnoozeUntil(context: Context): Long {
+    fun getSnoozeUntil(context: Context, user: String): Long {
         val sp = context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
-        return sp.getLong(KEY_SNOOZE_UNTIL, 0L)
+        return sp.getLong(k(KEY_SNOOZE_UNTIL, user), 0L)
     }
 
-    fun clearSnooze(context: Context) {
+    fun clearSnooze(context: Context, user: String) {
         val sp = context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
-        sp.edit().remove(KEY_SNOOZE_UNTIL).apply()
+        sp.edit().remove(k(KEY_SNOOZE_UNTIL, user)).apply()
+    }
+
+    fun setLastUser(context: Context, user: String) {
+        context.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
+            .putString(KEY_LAST_USER, user).apply()
+    }
+
+    fun getLastUser(context: Context): String? {
+        return context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+            .getString(KEY_LAST_USER, null)
     }
 }

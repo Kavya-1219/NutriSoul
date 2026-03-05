@@ -7,13 +7,16 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.simats.nutrisoul.data.*
 import com.simats.nutrisoul.data.network.NutritionApiService
+import com.simats.nutrisoul.data.network.UserApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -77,7 +80,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(): Retrofit {
+    @Named("NutritionRetrofit")
+    fun provideNutritionRetrofit(): Retrofit {
         return Retrofit.Builder()
             .baseUrl("https://api.nal.usda.gov/fdc/v1/")
             .addConverterFactory(GsonConverterFactory.create())
@@ -86,7 +90,34 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideNutritionApiService(retrofit: Retrofit): NutritionApiService {
+    @Named("DjangoRetrofit")
+    fun provideDjangoRetrofit(sessionManager: SessionManager): Retrofit {
+        val client = OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                sessionManager.getToken()?.let {
+                    request.addHeader("Authorization", "Bearer $it")
+                }
+                chain.proceed(request.build())
+            }
+            .build()
+
+        return Retrofit.Builder()
+            .baseUrl("http://10.0.2.2:8000/") // Default Django dev server URL for emulator
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideNutritionApiService(@Named("NutritionRetrofit") retrofit: Retrofit): NutritionApiService {
         return retrofit.create(NutritionApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserApi(@Named("DjangoRetrofit") retrofit: Retrofit): UserApi {
+        return retrofit.create(UserApi::class.java)
     }
 }

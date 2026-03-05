@@ -35,6 +35,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -105,7 +106,8 @@ private fun TabSwitcher(activeTab: String, onTabSelected: (String) -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 24.dp),
         shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(8.dp)
+        elevation = CardDefaults.cardElevation(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(modifier = Modifier.padding(4.dp)) {
             val faqsGradient = Brush.verticalGradient(colors = listOf(Color(0xFFFFA726), Color(0xFFF4511E)))
@@ -181,7 +183,7 @@ fun FaqsTab(onChatClick: () -> Unit) {
                     AnimatedVisibility(visible = expandedFaq == index) {
                         Column {
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(text = faq.second, style = MaterialTheme.typography.bodyMedium)
+                            Text(text = faq.second, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -193,25 +195,25 @@ fun FaqsTab(onChatClick: () -> Unit) {
                     .fillMaxWidth()
                     .padding(top = 16.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             ) {
                 Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "Still need help?",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0D47A1)
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Can't find what you're looking for? Try our AI chat or contact support.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF1565C0)
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = onChatClick, colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF1976D2)
+                            containerColor = MaterialTheme.colorScheme.primary
                         )
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -229,6 +231,7 @@ fun FaqsTab(onChatClick: () -> Unit) {
 @Composable
 fun ChatTab() {
     val keyboardController = LocalSoftwareKeyboardController.current
+    val scope = rememberCoroutineScope() // ✅ Fix 1: For AI delay
     val chatMessages = remember {
         mutableStateListOf(
             Message("Hi! I'm your AI nutrition assistant. How can I help you today?", false, SimpleDateFormat("hh:mm a", Locale.US).format(Date()))
@@ -238,7 +241,9 @@ fun ChatTab() {
     val listState = rememberLazyListState()
 
     LaunchedEffect(chatMessages.size) {
-        listState.animateScrollToItem(chatMessages.size - 1)
+        if (chatMessages.isNotEmpty()) {
+            listState.animateScrollToItem(chatMessages.size - 1)
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -260,14 +265,18 @@ fun ChatTab() {
             onInputChange = { inputMessage = it },
             onSend = {
                 if (inputMessage.isNotBlank()) {
-                    val userMessage = Message(inputMessage, true, SimpleDateFormat("hh:mm a", Locale.US).format(Date()))
+                    val userMessageText = inputMessage
+                    val userMessage = Message(userMessageText, true, SimpleDateFormat("hh:mm a", Locale.US).format(Date()))
                     chatMessages.add(userMessage)
                     inputMessage = ""
                     keyboardController?.hide()
 
-                    // Simulate AI response
-                    val aiResponse = getAiResponse(userMessage.text)
-                    chatMessages.add(Message(aiResponse, false, SimpleDateFormat("hh:mm a", Locale.US).format(Date())))
+                    // ✅ Fix 1: Professional typing feel with delay
+                    scope.launch {
+                        delay(800)
+                        val aiResponse = getAiResponse(userMessageText)
+                        chatMessages.add(Message(aiResponse, false, SimpleDateFormat("hh:mm a", Locale.US).format(Date())))
+                    }
                 }
             }
         )
@@ -280,6 +289,11 @@ private fun ChatMessage(message: Message) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
     ) {
+        // ✅ Fix 2: Theme-aware bubble colors
+        val userBubble = Color(0xFF1976D2)
+        val aiBubble = MaterialTheme.colorScheme.surfaceVariant
+        val aiText = MaterialTheme.colorScheme.onSurfaceVariant
+
         Card(
             modifier = Modifier.widthIn(max = 300.dp),
             shape = RoundedCornerShape(
@@ -289,18 +303,19 @@ private fun ChatMessage(message: Message) {
                 bottomEnd = 16.dp
             ),
             colors = CardDefaults.cardColors(
-                containerColor = if (message.isUser) Color(0xFF1976D2) else Color(0xFFF1F1F1)
-            )
+                containerColor = if (message.isUser) userBubble else aiBubble
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(
                     text = message.text,
-                    color = if (message.isUser) Color.White else Color.Black
+                    color = if (message.isUser) Color.White else aiText
                 )
                 Text(
                     text = message.timestamp,
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (message.isUser) Color.White.copy(alpha = 0.7f) else Color.Gray,
+                    color = if (message.isUser) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.align(Alignment.End)
                 )
             }
@@ -319,7 +334,8 @@ private fun ChatInput(
             .fillMaxWidth()
             .padding(8.dp),
         shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp),
@@ -344,7 +360,7 @@ private fun ChatInput(
                 enabled = input.isNotBlank(),
                 modifier = Modifier
                     .clip(CircleShape)
-                    .background(if (input.isNotBlank()) Color(0xFF1976D2) else Color.Gray)
+                    .background(if (input.isNotBlank()) Color(0xFF1976D2) else MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.White)
             }

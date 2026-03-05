@@ -1,8 +1,10 @@
 package com.simats.nutrisoul
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -15,12 +17,6 @@ fun NavGraph(
     navController: NavHostController
 ) {
     val userViewModel: UserViewModel = hiltViewModel()
-    val logFoodViewModel: LogFoodViewModel = hiltViewModel()
-    val homeViewModel: HomeViewModel = hiltViewModel()
-    val mealPlanViewModel: MealPlanViewModel = hiltViewModel()
-    val historyViewModel: HistoryViewModel = hiltViewModel()
-    val nutritionInsightsViewModel: NutritionInsightsViewModel = hiltViewModel()
-    val mindCareViewModel: MindCareViewModel = hiltViewModel()
 
     NavHost(navController = navController, startDestination = Screen.Splash.route) {
         composable(Screen.Splash.route) {
@@ -91,7 +87,7 @@ fun NavGraph(
                     navController.getBackStackEntry("main_graph")
                 }
                 val stepsViewModel: StepsViewModel = hiltViewModel(parentEntry)
-                HomeScreen(navController = navController, userViewModel = userViewModel, homeViewModel = homeViewModel, stepsViewModel = stepsViewModel)
+                HomeScreen(navController = navController, userViewModel = userViewModel, homeViewModel = hiltViewModel(), stepsViewModel = stepsViewModel)
             }
             composable(Screen.WaterTracking.route) {
                 WaterTrackingScreen(navController = navController, userViewModel = userViewModel)
@@ -105,26 +101,28 @@ fun NavGraph(
             }
 
             composable(Screen.LogFood.route) {
-                LogFoodScreen(navController = navController, viewModel = logFoodViewModel)
+                LogFoodScreen(navController = navController, viewModel = hiltViewModel())
             }
             
             composable(Screen.MealPlan.route) {
-                TodaysMealPlanScreen(navController = navController, viewModel = mealPlanViewModel)
+                TodaysMealPlanScreen(navController = navController, viewModel = hiltViewModel())
             }
             composable(Screen.AiTips.route) {
                 AiTipsScreen(navController = navController, userViewModel = userViewModel)
             }
             composable(Screen.History.route) {
-                HistoryScreen(navController = navController, viewModel = historyViewModel)
+                HistoryScreen(navController = navController, viewModel = hiltViewModel())
             }
             composable(Screen.MindCare.route) {
-                MindCareScreen(navController = navController, viewModel = mindCareViewModel)
+                MindCareScreen(navController = navController, viewModel = hiltViewModel())
             }
             composable(Screen.Recipes.route) {
-                RecipesScreen(navController = navController)
+                val userState by userViewModel.user.collectAsStateWithLifecycle()
+                val email = userState?.email ?: ""
+                RecipesScreen(navController = navController, userEmail = email)
             }
             composable(Screen.Insights.route) {
-                NutritionInsightsScreen(navController = navController, viewModel = nutritionInsightsViewModel)
+                NutritionInsightsScreen(navController = navController, viewModel = hiltViewModel())
             }
             composable(Screen.Settings.route) {
                 SettingsScreen(navController = navController, userViewModel = userViewModel)

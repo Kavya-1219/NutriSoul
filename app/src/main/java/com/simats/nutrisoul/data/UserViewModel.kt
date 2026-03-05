@@ -5,21 +5,27 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.simats.nutrisoul.settings.SettingsStore
 import com.simats.nutrisoul.steps.StepTrackingService
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 @HiltViewModel
-class UserViewModel @Inject constructor(application: Application) : AndroidViewModel(application) {
+class UserViewModel @Inject constructor(
+    application: Application,
+    private val sessionManager: SessionManager,
+    private val settingsStore: SettingsStore
+) : AndroidViewModel(application) {
 
     private val _user = MutableStateFlow<User?>(null)
     val user = _user.asStateFlow()
@@ -30,15 +36,21 @@ class UserViewModel @Inject constructor(application: Application) : AndroidViewM
     private val _automaticTracking = MutableStateFlow(false)
     val automaticTracking = _automaticTracking.asStateFlow()
 
-    private val _darkMode = MutableStateFlow(false)
-    val darkMode = _darkMode.asStateFlow()
+    // Professional: Use SettingsStore as the single source of truth for app-wide settings
+    val darkMode = sessionManager.currentUserEmailFlow().flatMapLatest { email ->
+        settingsStore.observe(email ?: "").map { it.darkMode }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    private val _profilePictureUri = MutableStateFlow<Uri?>(null)
-    val profilePictureUri = _profilePictureUri.asStateFlow()
+    val profilePictureUri = sessionManager.currentUserEmailFlow().flatMapLatest { email ->
+        settingsStore.observe(email ?: "").map { it.profilePictureUri }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val userName = sessionManager.currentUserEmailFlow().flatMapLatest { email ->
+        settingsStore.observe(email ?: "").map { it.userName }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "User")
 
     private val auth = FirebaseAuth.getInstance()
     private val db = Firebase.firestore
-    private val sessionManager = SessionManager(application)
 
     init {
         auth.addAuthStateListener { firebaseAuth ->
@@ -64,30 +76,36 @@ class UserViewModel @Inject constructor(application: Application) : AndroidViewM
                     try {
                         val user = mapDocumentToUser(document)
                         _user.value = user
-                        _darkMode.value = document.getBoolean("darkMode") ?: false
-                        val profilePicUriString = document.getString("profilePictureUri")
-                        if (profilePicUriString != null) {
-                            _profilePictureUri.value = Uri.parse(profilePicUriString)
+                        
+                        val email = auth.currentUser?.email
+                        if (email != null) {
+                            viewModelScope.launch {
+                                // Sync Firestore data to local SettingsStore
+                                settingsStore.setDarkMode(email, document.getBoolean("darkMode") ?: false)
+                                if (user.name.isNotBlank()) {
+                                    settingsStore.setUserName(email, user.name)
+                                }
+                                val photo = document.getString("profilePictureUri")
+                                if (photo != null) {
+                                    settingsStore.setProfilePicture(email, Uri.parse(photo))
+                                }
+                            }
                         }
+                        
                         _isLoading.value = false
 
-                        // After successfully loading, check if a migration is needed and perform it.
+                        // Migration check for dietaryRestrictions
                         val restrictionsField = document.get("dietaryRestrictions")
                         if (restrictionsField is String) {
                             val updatedRestrictions = if (restrictionsField.isBlank()) emptyList() else listOf(restrictionsField)
                             docRef.update("dietaryRestrictions", updatedRestrictions)
-                                .addOnFailureListener { e ->
-                                    Log.e("UserViewModel", "Failed to update dietaryRestrictions", e)
-                                }
                         }
 
                     } catch (e: Exception) {
                         Log.e("UserViewModel", "Error mapping user document", e)
                         _isLoading.value = false
-                        _user.value = null
                     }
                 } else {
-                    // Document doesn't exist, create a new user profile
                     _user.value = User()
                     _isLoading.value = false
                 }
@@ -95,12 +113,10 @@ class UserViewModel @Inject constructor(application: Application) : AndroidViewM
             .addOnFailureListener { e ->
                 Log.e("UserViewModel", "Failed to load user data", e)
                 _isLoading.value = false
-                _user.value = null // Indicate an error state
             }
     }
 
     private fun mapDocumentToUser(doc: DocumentSnapshot): User {
-        // Safely extract and convert dietaryRestrictions
         val dietaryRestrictionsRaw = doc.get("dietaryRestrictions")
         val dietaryRestrictions = when (dietaryRestrictionsRaw) {
             is String -> if (dietaryRestrictionsRaw.isBlank()) emptyList() else listOf(dietaryRestrictionsRaw)
@@ -108,7 +124,6 @@ class UserViewModel @Inject constructor(application: Application) : AndroidViewM
             else -> emptyList()
         }
 
-        // Helper function for safe number conversion
         fun getFloat(field: String): Float = (doc.get(field) as? Number)?.toFloat() ?: 0f
         fun getInt(field: String): Int = (doc.get(field) as? Number)?.toInt() ?: 0
 
@@ -148,54 +163,74 @@ class UserViewModel @Inject constructor(application: Application) : AndroidViewM
 
     fun updateUser(updatedUser: User) {
         val uid = auth.currentUser?.uid
-        if (uid != null) {
-            _user.value = updatedUser
-            db.collection("users").document(uid).set(updatedUser)
+        if (uid == null) return
+
+        _user.value = updatedUser
+        db.collection("users").document(uid).set(updatedUser)
+            .addOnFailureListener { e -> Log.e("UserViewModel", "Failed to update user", e) }
+
+        // ✅ Sync name to SettingsStore (Figma Step 3)
+        if (updatedUser.name.isNotBlank()) {
+            viewModelScope.launch {
+                // Prefer sessionManager (more stable), fallback to Firebase email
+                val email = sessionManager.currentUserEmailFlow().firstOrNull()
+                    ?: auth.currentUser?.email
+                    ?: return@launch
+
+                settingsStore.setUserName(email, updatedUser.name)
+            }
         }
     }
 
-    fun retryLoadUserData() {
-        auth.currentUser?.uid?.let {
-            loadUserData(it, Source.SERVER)
+    fun setDarkMode(enabled: Boolean) {
+        val uid = auth.currentUser?.uid
+        val email = auth.currentUser?.email
+        if (uid != null && email != null) {
+            viewModelScope.launch {
+                settingsStore.setDarkMode(email, enabled)
+                db.collection("users").document(uid).update("darkMode", enabled)
+            }
+        }
+    }
+
+    fun setProfilePictureUri(uri: Uri) {
+        val uid = auth.currentUser?.uid
+        val email = auth.currentUser?.email
+        if (uid != null && email != null) {
+            viewModelScope.launch {
+                settingsStore.setProfilePicture(email, uri)
+                db.collection("users").document(uid).update("profilePictureUri", uri.toString())
+            }
         }
     }
 
     fun updateGoal(goal: String) {
-        _user.value?.let { currentUser ->
-            updateUser(currentUser.copy(goal = goal))
-        }
+        _user.value?.let { currentUser -> updateUser(currentUser.copy(goal = goal)) }
     }
 
     fun updateTargetWeight(weight: Float) {
-        _user.value?.let { currentUser ->
-            updateUser(currentUser.copy(targetWeight = weight))
-        }
+        _user.value?.let { currentUser -> updateUser(currentUser.copy(targetWeight = weight)) }
     }
 
     fun updateCurrentWeight(weight: Float) {
-        _user.value?.let { currentUser ->
-            updateUser(currentUser.copy(currentWeight = weight))
-        }
+        _user.value?.let { currentUser -> updateUser(currentUser.copy(currentWeight = weight)) }
     }
 
     fun addCalories(calories: Int) {
         _user.value?.let { currentUser ->
-            val currentCalories = currentUser.todaysCalories
-            updateUser(currentUser.copy(todaysCalories = currentCalories + calories))
+            updateUser(currentUser.copy(todaysCalories = currentUser.todaysCalories + calories))
         }
     }
 
     fun updateWaterIntake(amount: Int) {
         _user.value?.let { currentUser ->
-            val newIntake = (currentUser.todaysWaterIntake + amount).coerceAtLeast(0)
-            updateUser(currentUser.copy(todaysWaterIntake = newIntake))
+            updateUser(currentUser.copy(todaysWaterIntake = (currentUser.todaysWaterIntake + amount).coerceAtLeast(0)))
         }
     }
 
     fun updateSteps(steps: Int) {
         _user.value?.let { currentUser ->
-            val newSteps = (currentUser.todaysSteps + steps).coerceAtLeast(0)
-            updateUser(currentUser.copy(todaysSteps = newSteps))
+            updateUser(currentUser.copy(todaysSteps = (currentUser.todaysSteps + steps).coerceAtLeast(0)))
         }
     }
 
@@ -204,32 +239,14 @@ class UserViewModel @Inject constructor(application: Application) : AndroidViewM
     }
 
     fun updateStepsFromSensor(steps: Int) {
-        _user.value?.let { currentUser ->
-            updateUser(currentUser.copy(todaysSteps = steps))
-        }
-    }
-
-    fun calculateTargetCalories() {
-        // Placeholder for calorie calculation logic
-    }
-
-    fun setDarkMode(enabled: Boolean) {
-        val uid = auth.currentUser?.uid
-        if (uid != null) {
-            _darkMode.value = enabled
-            db.collection("users").document(uid).update("darkMode", enabled)
-        }
-    }
-
-    fun setProfilePictureUri(uri: Uri) {
-        val uid = auth.currentUser?.uid
-        if (uid != null) {
-            _profilePictureUri.value = uri
-            db.collection("users").document(uid).update("profilePictureUri", uri.toString())
-        }
+        _user.value?.let { currentUser -> updateUser(currentUser.copy(todaysSteps = steps)) }
     }
 
     fun logout() {
         auth.signOut()
+    }
+
+    fun retryLoadUserData() {
+        auth.currentUser?.uid?.let { loadUserData(it, Source.SERVER) }
     }
 }

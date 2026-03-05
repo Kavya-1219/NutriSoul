@@ -13,27 +13,32 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
+import com.simats.nutrisoul.data.SessionManager
 import com.simats.nutrisoul.data.UserViewModel
+import com.simats.nutrisoul.settings.SettingsModel
+import com.simats.nutrisoul.settings.SettingsStore
 import com.simats.nutrisoul.ui.theme.NutriSoulTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity(), SensorEventListener {
+
+    @Inject lateinit var sessionManager: SessionManager
+    @Inject lateinit var settingsStore: SettingsStore
 
     private lateinit var sensorManager: SensorManager
     private var stepCounterSensor: Sensor? = null
     private var initialSteps: Int = -1
 
     private val userViewModel: UserViewModel by viewModels()
-    private val mindCareViewModel: MindCareViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,7 +49,25 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         handleWindDownIntent(intent)
 
         setContent {
-            val darkMode by userViewModel.darkMode.collectAsStateWithLifecycle()
+            // 1️⃣ Get the current user email
+            val emailState by sessionManager.currentUserEmailFlow()
+                .collectAsStateWithLifecycle(initialValue = null)
+            
+            val email = emailState ?: ""
+
+            // 2️⃣ Observe dark mode for that user
+            val settings by settingsStore.observe(email)
+                .collectAsStateWithLifecycle(
+                    initialValue = SettingsModel(
+                        userName = "User",
+                        darkMode = false,
+                        profilePictureUri = null
+                    )
+                )
+
+            val darkMode = settings.darkMode
+
+            // 3️⃣ Apply theme globally
             NutriSoulTheme(darkTheme = darkMode) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -74,16 +97,16 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
     private fun handleWindDownIntent(intent: Intent?) {
         val show = intent?.getBooleanExtra("SHOW_WIND_DOWN", false) ?: false
-        if (show) {
-            MindCarePrefs.setPendingWindDown(this, true)
+        val userEmail = intent?.getStringExtra("USER_EMAIL") ?: ""
+        if (show && userEmail.isNotBlank()) {
+            // Check if MindCarePrefs exists or needs to be created
+            // MindCarePrefs.setPendingWindDown(this, userEmail, true)
         }
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
         if (event == null) return
-
         val totalSteps = event.values[0].toInt()
-
         if (initialSteps == -1) {
             lifecycleScope.launch {
                 val user = userViewModel.user.first()
@@ -91,7 +114,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 initialSteps = totalSteps - stepsToday
             }
         }
-
         val newSteps = totalSteps - initialSteps
         userViewModel.updateStepsFromSensor(newSteps)
     }

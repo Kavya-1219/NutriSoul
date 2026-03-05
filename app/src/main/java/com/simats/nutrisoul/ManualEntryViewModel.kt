@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
-import kotlin.math.roundToInt
 
 @HiltViewModel
 class ManualEntryViewModel @Inject constructor(
@@ -40,22 +39,22 @@ class ManualEntryViewModel @Inject constructor(
             val totalCarbs = (carbsPer100g.value.toDoubleOrNull() ?: 0.0) * factor
             val totalFats = (fatsPer100g.value.toDoubleOrNull() ?: 0.0) * factor
 
-            // 1. Save to food_logs (Option A)
+            // 1. Save to food_logs
             foodLogRepository.addLog(
                 FoodLogEntity(
                     userEmail = email,
                     name = foodName.value,
-                    caloriesPerUnit = (caloriesPer100g.value.toDoubleOrNull() ?: 0.0).roundToInt(),
-                    proteinPerUnit = (proteinPer100g.value.toDoubleOrNull() ?: 0.0).roundToInt(),
-                    carbsPerUnit = (carbsPer100g.value.toDoubleOrNull() ?: 0.0).roundToInt(),
-                    fatsPerUnit = (fatsPer100g.value.toDoubleOrNull() ?: 0.0).roundToInt(),
+                    caloriesPerUnit = (caloriesPer100g.value.toFloatOrNull() ?: 0f),
+                    proteinPerUnit = (proteinPer100g.value.toFloatOrNull() ?: 0f),
+                    carbsPerUnit = (carbsPer100g.value.toFloatOrNull() ?: 0f),
+                    fatsPerUnit = (fatsPer100g.value.toFloatOrNull() ?: 0f),
                     quantity = factor.toFloat(),
                     unit = "100${unit.value}",
                     timestampMillis = System.currentTimeMillis()
                 )
             )
 
-            // 2. Save to daily_intake (Option A)
+            // 2. Save to daily_intake
             val foodLog = FoodLog(
                 name = foodName.value,
                 calories = totalCalories,

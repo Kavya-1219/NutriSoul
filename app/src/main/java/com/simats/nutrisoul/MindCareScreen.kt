@@ -35,27 +35,33 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.simats.nutrisoul.data.UserViewModel
 
 @Composable
 fun MindCareScreen(
     navController: NavController,
-    viewModel: MindCareViewModel = hiltViewModel()
+    viewModel: MindCareViewModel = hiltViewModel(),
+    userViewModel: UserViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val userState by userViewModel.user.collectAsStateWithLifecycle()
+    val userEmail = userState?.email ?: ""
     val context = LocalContext.current
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            viewModel.onReminderToggled(true, context)
+            viewModel.onReminderToggled(true, context, userEmail)
         } else {
             Toast.makeText(context, "Notification permission is required for reminders", Toast.LENGTH_SHORT).show()
         }
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.init(context)
+    LaunchedEffect(userEmail) {
+        if (userEmail.isNotEmpty()) {
+            viewModel.init(context, userEmail)
+        }
     }
 
     MindCareScreenContent(navController, uiState, viewModel) { enabled ->
@@ -78,9 +84,9 @@ fun MindCareScreen(
                     return@MindCareScreenContent
                 }
             }
-            viewModel.onReminderToggled(true, context)
+            viewModel.onReminderToggled(true, context, userEmail)
         } else {
-            viewModel.onReminderToggled(false, context)
+            viewModel.onReminderToggled(false, context, userEmail)
         }
     }
 
@@ -89,7 +95,7 @@ fun MindCareScreen(
             schedule = uiState.sleepSchedule,
             onDismiss = viewModel::onDismissScheduleDialog,
             onSave = { bedtime, wakeTime ->
-                viewModel.onSaveSchedule(bedtime, wakeTime, context)
+                viewModel.onSaveSchedule(bedtime, wakeTime, context, userEmail)
             }
         )
     }
@@ -103,7 +109,7 @@ fun MindCareScreen(
             },
             onSnooze = {
                 viewModel.onDismissWindDownDialog()
-                viewModel.onSnooze10Min(context)
+                viewModel.onSnooze10Min(context, userEmail)
             }
         )
     }
@@ -114,7 +120,7 @@ fun MindCareScreen(
             onDismiss = viewModel::onDismissLogSleepDialog,
             onLog = { b, w, q ->
                 viewModel.onLogSleep(b, w, q)
-                viewModel.persistAfterLog(context)
+                viewModel.persistAfterLog(context, userEmail)
             }
         )
     }

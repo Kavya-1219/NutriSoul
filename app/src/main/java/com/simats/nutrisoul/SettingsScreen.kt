@@ -1,11 +1,12 @@
 package com.simats.nutrisoul
 
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.* 
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,25 +26,32 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.simats.nutrisoul.data.UserViewModel
-import com.simats.nutrisoul.ui.theme.NutriSoulTheme
 
 @Composable
-fun SettingsScreen(navController: NavController, userViewModel: UserViewModel = hiltViewModel()) {
+fun SettingsScreen(
+    navController: NavController,
+    userViewModel: UserViewModel = hiltViewModel()
+) {
     val darkMode by userViewModel.darkMode.collectAsStateWithLifecycle()
-    val user by userViewModel.user.collectAsStateWithLifecycle()
+    val userName by userViewModel.userName.collectAsStateWithLifecycle()
     val profilePictureUri by userViewModel.profilePictureUri.collectAsStateWithLifecycle()
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-        onResult = { uri ->
-            uri?.let { userViewModel.setProfilePictureUri(it) }
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri: Uri? ->
+            uri?.let {
+                try {
+                    val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    navController.context.contentResolver.takePersistableUriPermission(it, flags)
+                } catch (_: SecurityException) {}
+                userViewModel.setProfilePictureUri(it)
+            }
         }
     )
 
@@ -58,12 +66,11 @@ fun SettingsScreen(navController: NavController, userViewModel: UserViewModel = 
                         userViewModel.logout()
                         showLogoutDialog = false
                         navController.navigate(Screen.Login.route) {
-                            popUpTo(Screen.Home.route) { inclusive = true }
+                            popUpTo(Screen.Splash.route) { inclusive = true }
+                            launchSingleTop = true
                         }
                     }
-                ) {
-                    Text("Logout")
-                }
+                ) { Text("Logout") }
             },
             dismissButton = {
                 TextButton(onClick = { showLogoutDialog = false }) {
@@ -75,20 +82,22 @@ fun SettingsScreen(navController: NavController, userViewModel: UserViewModel = 
 
     Scaffold(
         bottomBar = { BottomNavigationBar(navController = navController) }
-    ) {
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(it)
+                .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
         ) {
             Header()
+
             ProfilePictureSection(
                 profilePictureUri = profilePictureUri?.toString(),
-                userName = user?.name ?: "User",
-                onImageClick = { imagePickerLauncher.launch("image/*") }
+                userName = userName,
+                onImageClick = { imagePickerLauncher.launch(arrayOf("image/*")) }
             )
+
             SettingsOptions(
                 darkMode = darkMode,
                 onDarkModeChange = { userViewModel.setDarkMode(it) },
@@ -97,6 +106,8 @@ fun SettingsScreen(navController: NavController, userViewModel: UserViewModel = 
                 onAboutClick = { navController.navigate("about") },
                 onLogoutClick = { showLogoutDialog = true }
             )
+
+            Spacer(Modifier.height(24.dp))
         }
     }
 }
@@ -106,39 +117,48 @@ private fun Header() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(200.dp)
+            .height(210.dp)
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(Color(0xFF6A1B9A), Color(0xFF8E24AA))
                 )
             )
-            .padding(16.dp),
+            .padding(16.dp)
     ) {
-        Column {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.Center
+        ) {
             Text(
                 text = "Settings",
                 style = MaterialTheme.typography.headlineMedium,
                 color = Color.White,
                 fontWeight = FontWeight.Bold
             )
+            Spacer(Modifier.height(4.dp))
             Text(
                 text = "Customize your experience",
                 style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.8f)
+                color = Color.White.copy(alpha = 0.85f)
             )
         }
     }
 }
 
 @Composable
-private fun ProfilePictureSection(profilePictureUri: String?, userName: String, onImageClick: () -> Unit) {
+private fun ProfilePictureSection(
+    profilePictureUri: String?,
+    userName: String,
+    onImageClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
             .offset(y = (-60).dp),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
             modifier = Modifier
@@ -146,49 +166,72 @@ private fun ProfilePictureSection(profilePictureUri: String?, userName: String, 
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(modifier = Modifier.clickable(onClick = onImageClick)) {
+            Box(
+                modifier = Modifier
+                    .size(84.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onImageClick),
+                contentAlignment = Alignment.Center
+            ) {
                 if (profilePictureUri != null) {
                     AsyncImage(
                         model = profilePictureUri,
                         contentDescription = "Profile Picture",
                         modifier = Modifier
-                            .size(80.dp)
+                            .fillMaxSize()
                             .clip(CircleShape),
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    Image(
-                        imageVector = Icons.Default.AccountCircle,
-                        contentDescription = "Profile Picture",
+                    Box(
                         modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .background(Color.Gray),
-                        contentScale = ContentScale.Crop
+                            .fillMaxSize()
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(Color(0xFFB39DDB), Color(0xFF7E57C2))
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Default Profile",
+                            tint = Color.White,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(28.dp)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CameraAlt,
+                        contentDescription = "Change Picture",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
-                Icon(
-                    imageVector = Icons.Default.CameraAlt,
-                    contentDescription = "Change Picture",
-                    modifier = Modifier
-                        .size(24.dp)
-                        .align(Alignment.BottomEnd)
-                        .background(MaterialTheme.colorScheme.primary, CircleShape)
-                        .padding(4.dp),
-                    tint = Color.White
-                )
             }
+
             Spacer(modifier = Modifier.width(16.dp))
-            Column {
+
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = userName,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
+                Spacer(Modifier.height(2.dp))
                 Text(
-                    text = "Tap camera to change",
+                    text = "Tap to change profile photo",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -205,155 +248,167 @@ private fun SettingsOptions(
     onLogoutClick: () -> Unit
 ) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        Text(
-            text = "APPEARANCE",
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.Gray,
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column {
-                SettingItem(
-                    icon = if (darkMode) Icons.Default.DarkMode else Icons.Default.WbSunny,
-                    title = "Dark Mode",
-                    subtitle = if (darkMode) "On" else "Off"
-                ) {
-                    Switch(checked = darkMode, onCheckedChange = onDarkModeChange)
-                }
-            }
+
+        SectionTitle("APPEARANCE")
+        CardBlock {
+            // Sun icon when OFF (yellow), Moon icon when ON (indigo)
+            val darkIcon = if (darkMode) Icons.Default.DarkMode else Icons.Default.WbSunny
+            val darkTint = if (darkMode) Color(0xFF5C6BC0) else Color(0xFFFFB300) // indigo / yellow
+
+            SettingItem(
+                icon = darkIcon,
+                iconTint = darkTint,
+                title = "Dark Mode",
+                subtitle = if (darkMode) "On" else "Off",
+                trailing = {
+                    Switch(
+                        checked = darkMode,
+                        onCheckedChange = onDarkModeChange
+                    )
+                },
+                onClick = { onDarkModeChange(!darkMode) }
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "ACCOUNT",
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.Gray,
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
+        SectionTitle("ACCOUNT")
+        CardBlock {
             SettingItem(
                 icon = Icons.Default.AccountCircle,
+                iconTint = Color(0xFF43A047),
                 title = "Profile Settings",
                 subtitle = "Manage your profile",
-                onClick = onProfileClick
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                    contentDescription = "Arrow"
-                )
-            }
+                onClick = onProfileClick,
+                trailing = {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                        contentDescription = "Open",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "HELP & SUPPORT",
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.Gray,
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column {
-                SettingItem(
-                    icon = Icons.Default.Help,
-                    title = "Help & Support",
-                    subtitle = "FAQs, Chat with AI",
-                    onClick = onHelpClick
-                ) {
+        SectionTitle("HELP & SUPPORT")
+        CardBlock {
+            SettingItem(
+                icon = Icons.Default.Help,
+                iconTint = Color(0xFFFB8C00),
+                title = "Help & Support",
+                subtitle = "FAQs, Chat with AI",
+                onClick = onHelpClick,
+                trailing = {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                        contentDescription = "Arrow"
+                        contentDescription = "Open",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Divider()
-                SettingItem(
-                    icon = Icons.Default.Info,
-                    title = "About",
-                    subtitle = "Version 1.0.0",
-                    onClick = onAboutClick
-                ) {
+            )
+            Divider(color = MaterialTheme.colorScheme.outlineVariant)
+            SettingItem(
+                icon = Icons.Default.Info,
+                iconTint = Color(0xFF8E24AA),
+                title = "About",
+                subtitle = "Version 1.0.0",
+                onClick = onAboutClick,
+                trailing = {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                        contentDescription = "Arrow"
+                        contentDescription = "Open",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "LOGOUT",
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.Gray,
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
+        SectionTitle("LOGOUT")
+        CardBlock {
             SettingItem(
                 icon = Icons.AutoMirrored.Filled.Logout,
+                iconTint = Color(0xFFE53935),
                 title = "Logout",
                 subtitle = "Sign out of your account",
-                contentColor = Color.Red,
-                onClick = onLogoutClick
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                    contentDescription = "Arrow"
-                )
-            }
+                titleColor = Color(0xFFE53935),
+                subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = onLogoutClick,
+                trailing = {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                        contentDescription = "Open",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            )
         }
+    }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(vertical = 8.dp)
+    )
+}
+
+@Composable
+private fun CardBlock(content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(content = content)
     }
 }
 
 @Composable
 private fun SettingItem(
     icon: ImageVector,
+    iconTint: Color,
     title: String,
     subtitle: String,
-    contentColor: Color = LocalContentColor.current,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    subtitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     onClick: (() -> Unit)? = null,
-    trailingContent: @Composable (() -> Unit)? = null
+    trailing: @Composable (() -> Unit)? = null
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = onClick != null, onClick = { onClick?.invoke() })
-            .padding(16.dp),
+            .clickable(enabled = onClick != null) { onClick?.invoke() }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = icon,
             contentDescription = title,
-            tint = contentColor
+            tint = iconTint
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, fontWeight = FontWeight.SemiBold, color = contentColor)
-            Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+            Text(
+                text = title,
+                fontWeight = FontWeight.SemiBold,
+                color = titleColor
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = subtitleColor
+            )
         }
-        if (trailingContent != null) {
-            trailingContent()
-        }
+        if (trailing != null) trailing()
     }
 }

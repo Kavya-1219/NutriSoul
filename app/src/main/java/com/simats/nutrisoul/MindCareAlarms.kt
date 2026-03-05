@@ -11,9 +11,10 @@ import java.util.Calendar
 private const val REQ_BEDTIME_ALARM = 7001
 private const val REQ_SNOOZE_ALARM = 7002
 
-private fun bedtimePI(context: Context): PendingIntent {
+private fun bedtimePI(context: Context, userEmail: String): PendingIntent {
     val intent = Intent(context, BedtimeReminderReceiver::class.java).apply {
         action = "ACTION_BEDTIME_REMINDER"
+        putExtra("USER_EMAIL", userEmail)
     }
     return PendingIntent.getBroadcast(
         context,
@@ -23,9 +24,10 @@ private fun bedtimePI(context: Context): PendingIntent {
     )
 }
 
-private fun snoozePI(context: Context): PendingIntent {
+private fun snoozePI(context: Context, userEmail: String): PendingIntent {
     val intent = Intent(context, BedtimeReminderReceiver::class.java).apply {
         action = "ACTION_BEDTIME_SNOOZE"
+        putExtra("USER_EMAIL", userEmail)
     }
     return PendingIntent.getBroadcast(
         context,
@@ -35,11 +37,11 @@ private fun snoozePI(context: Context): PendingIntent {
     )
 }
 
-fun scheduleBedtimeReminder(context: Context, bedtime: LocalTime) {
+fun scheduleBedtimeReminder(context: Context, userEmail: String, bedtime: LocalTime) {
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    // ✅ cancel previous to avoid duplicates
-    alarmManager.cancel(bedtimePI(context))
+    // cancel previous to avoid duplicates
+    alarmManager.cancel(bedtimePI(context, userEmail))
 
     val calendar = Calendar.getInstance().apply {
         timeInMillis = System.currentTimeMillis()
@@ -55,14 +57,12 @@ fun scheduleBedtimeReminder(context: Context, bedtime: LocalTime) {
     }
 
     val triggerAt = calendar.timeInMillis
-    val pi = bedtimePI(context)
+    val pi = bedtimePI(context, userEmail)
 
-    // ✅ Best reliability
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         if (alarmManager.canScheduleExactAlarms()) {
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
         } else {
-            // fallback (still works but may not be exact)
             alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
         }
     } else {
@@ -70,19 +70,18 @@ fun scheduleBedtimeReminder(context: Context, bedtime: LocalTime) {
     }
 }
 
-fun cancelBedtimeReminder(context: Context) {
+fun cancelBedtimeReminder(context: Context, userEmail: String) {
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    alarmManager.cancel(bedtimePI(context))
+    alarmManager.cancel(bedtimePI(context, userEmail))
 }
 
-fun scheduleSnoozeReminder(context: Context, minutes: Int) {
+fun scheduleSnoozeReminder(context: Context, userEmail: String, minutes: Int) {
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    // ✅ cancel previous snooze to avoid stacking
-    alarmManager.cancel(snoozePI(context))
+    alarmManager.cancel(snoozePI(context, userEmail))
 
     val triggerAt = System.currentTimeMillis() + minutes * 60_000L
-    val pi = snoozePI(context)
+    val pi = snoozePI(context, userEmail)
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         if (alarmManager.canScheduleExactAlarms()) {

@@ -2,38 +2,13 @@ package com.simats.nutrisoul
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.TrackChanges
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,12 +22,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(navController: NavController) {
+    // ✅ Fix 1: Dark mode support via MaterialTheme colors
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color(0xFFF0FDF4) // a light green-ish background
+        color = MaterialTheme.colorScheme.background
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -145,7 +120,7 @@ private fun MissionCard() {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -166,7 +141,7 @@ private fun MissionCard() {
             Text(
                 text = "To empower individuals on their health journey by providing personalized nutrition guidance, AI-powered recommendations, and comprehensive tracking tools. We believe everyone deserves access to professional-grade nutrition planning tailored to their unique needs.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant // ✅ Fix 2: Avoid hard-coded gray
             )
         }
     }
@@ -178,7 +153,7 @@ private fun FeaturesCard() {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -237,7 +212,7 @@ fun FeatureItem(icon: ImageVector, iconBgColor: Color, iconColor: Color, title: 
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = title, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge)
-            Text(text = subtitle, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+            Text(text = subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -253,8 +228,8 @@ private fun HealthConditionsCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFEBF5FF)),
-        border = BorderStroke(1.dp, Color(0xFFBEE3F8))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -275,7 +250,7 @@ private fun HealthConditionsCard() {
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(Color.White)
+                                .background(MaterialTheme.colorScheme.surface)
                                 .padding(vertical = 8.dp, horizontal = 12.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -302,7 +277,7 @@ private fun DisclaimerCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7)), // Warning stays yellow-ish usually
         border = BorderStroke(1.dp, Color(0xFFFDE68A))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -317,14 +292,15 @@ private fun DisclaimerCard() {
                 Text(
                     text = "Medical Disclaimer",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF92400E)
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "This app is for informational purposes only and should not replace professional medical advice. Always consult with a healthcare provider or registered dietitian before making significant changes to your diet or exercise routine, especially if you have existing health conditions.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.DarkGray,
+                color = Color(0xFF92400E),
                 lineHeight = 20.sp
             )
         }
@@ -337,7 +313,7 @@ private fun MadeWithLoveCard() {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
             modifier = Modifier
@@ -361,7 +337,7 @@ private fun MadeWithLoveCard() {
             Text(
                 text = "© 2026 NutriSoul App. All rights reserved.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
         }

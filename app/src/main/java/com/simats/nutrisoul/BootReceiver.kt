@@ -7,8 +7,11 @@ import android.content.Intent
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         if (intent?.action != Intent.ACTION_BOOT_COMPLETED) return
-        if (!MindCarePrefs.loadReminderEnabled(context)) return
-        val schedule = MindCarePrefs.loadSchedule(context)
-        scheduleBedtimeReminder(context, schedule.bedtime)
+        
+        val user = MindCarePrefs.getLastUser(context) ?: return
+        
+        if (!MindCarePrefs.loadReminderEnabled(context, user)) return
+        val schedule = MindCarePrefs.loadSchedule(context, user)
+        scheduleBedtimeReminder(context, user, schedule.bedtime)
     }
 }
