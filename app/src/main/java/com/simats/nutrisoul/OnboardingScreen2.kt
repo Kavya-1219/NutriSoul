@@ -67,11 +67,17 @@ fun OnboardingScreen2(onNextClicked: () -> Unit, onSkipClicked: () -> Unit) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.logo3),
-                contentDescription = "Onboarding Image",
-                modifier = Modifier.size(200.dp)
-            )
+            // Using a Box wrapper for centering, removing the large manual offset
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.logo3),
+                    contentDescription = "Onboarding Image",
+                    modifier = Modifier.size(200.dp)
+                )
+            }
             Spacer(modifier = Modifier.height(64.dp))
             Text(
                 text = "More Than Just Calories",
