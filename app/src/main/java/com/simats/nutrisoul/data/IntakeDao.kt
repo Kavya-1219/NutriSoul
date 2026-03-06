@@ -6,7 +6,6 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.simats.nutrisoul.data.models.DailyTotals
 import kotlinx.coroutines.flow.Flow
-import java.time.LocalDate
 
 @Dao
 interface IntakeDao {
@@ -16,27 +15,27 @@ interface IntakeDao {
 
     @Query("""
         SELECT * FROM daily_intake
-        WHERE date = :date AND userEmail = :email
+        WHERE date = :date AND LOWER(userEmail) = LOWER(:email)
         ORDER BY id DESC
     """)
-    fun getForDate(date: LocalDate, email: String): Flow<List<IntakeEntity>>
+    fun getForDate(date: String, email: String): Flow<List<IntakeEntity>>
 
     @Query("""
         SELECT * FROM daily_intake
-        WHERE userEmail = :email 
+        WHERE LOWER(userEmail) = LOWER(:email) 
           AND date BETWEEN :startDate AND :endDate
         ORDER BY date DESC, timestamp DESC
     """)
-    fun getLogsBetween(email: String, startDate: LocalDate, endDate: LocalDate): Flow<List<IntakeEntity>>
+    fun getLogsBetween(email: String, startDate: String, endDate: String): Flow<List<IntakeEntity>>
 
     @Query("""
-        SELECT 
+        SELECT
             IFNULL(SUM(calories), 0) as calories,
             IFNULL(SUM(protein), 0) as protein,
             IFNULL(SUM(carbs), 0) as carbs,
             IFNULL(SUM(fats), 0) as fats
         FROM daily_intake
-        WHERE date = :date AND userEmail = :email
+        WHERE date = :date AND LOWER(userEmail) = LOWER(:email)
     """)
-    fun observeTotalsForDate(date: LocalDate, email: String): Flow<DailyTotals>
+    fun observeTotalsForDate(date: String, email: String): Flow<DailyTotals>
 }

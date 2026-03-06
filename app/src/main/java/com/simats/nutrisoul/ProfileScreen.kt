@@ -33,6 +33,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.simats.nutrisoul.data.User
 import com.simats.nutrisoul.data.UserViewModel
+import com.simats.nutrisoul.ui.theme.LocalDarkTheme
 
 @Composable
 fun ProfileScreen(
@@ -40,7 +41,6 @@ fun ProfileScreen(
     userViewModel: UserViewModel
 ) {
     val user by userViewModel.user.collectAsStateWithLifecycle()
-    val darkMode by userViewModel.darkMode.collectAsStateWithLifecycle()
     val profilePictureUri by userViewModel.profilePictureUri.collectAsStateWithLifecycle()
 
     var isEditing by rememberSaveable { mutableStateOf(false) }
@@ -248,7 +248,7 @@ private fun ProfileHeaderPremium(
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Text(
                 text = userName,
@@ -275,6 +275,11 @@ private fun ProfilePremiumContent(
     var gender by rememberSaveable(user.email) { mutableStateOf(user.gender) }
     var height by rememberSaveable(user.email) { mutableStateOf(if (user.height == 0f) "" else user.height.toString()) }
     var weight by rememberSaveable(user.email) { mutableStateOf(if (user.weight == 0f) "" else user.weight.toString()) }
+    var activityLevel by rememberSaveable(user.email) { mutableStateOf(user.activityLevel) }
+    var goal by rememberSaveable(user.email) { mutableStateOf(user.goal) }
+    var targetWeight by rememberSaveable(user.email) { mutableStateOf(if (user.targetWeight == 0f) "" else user.targetWeight.toString()) }
+    var mealsPerDay by rememberSaveable(user.email) { mutableStateOf(if (user.mealsPerDay == 0) "" else user.mealsPerDay.toString()) }
+    var healthConditions by rememberSaveable(user.email) { mutableStateOf(user.healthConditions.joinToString(", ")) }
 
     var currentPassword by rememberSaveable { mutableStateOf("") }
     var newPassword by rememberSaveable { mutableStateOf("") }
@@ -288,6 +293,11 @@ private fun ProfilePremiumContent(
             gender = user.gender
             height = if (user.height == 0f) "" else user.height.toString()
             weight = if (user.weight == 0f) "" else user.weight.toString()
+            activityLevel = user.activityLevel
+            goal = user.goal
+            targetWeight = if (user.targetWeight == 0f) "" else user.targetWeight.toString()
+            mealsPerDay = if (user.mealsPerDay == 0) "" else user.mealsPerDay.toString()
+            healthConditions = user.healthConditions.joinToString(", ")
         }
     }
 
@@ -346,7 +356,7 @@ private fun ProfilePremiumContent(
 
         CardPremium {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SectionTitle("Body Details")
+                SectionTitle("Physical Attributes")
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                     PremiumField(
@@ -364,6 +374,58 @@ private fun ProfilePremiumContent(
                         modifier = Modifier.weight(1f)
                     )
                 }
+                
+                PremiumDropdown(
+                    label = "Activity Level",
+                    value = activityLevel,
+                    enabled = isEditing,
+                    options = listOf("Sedentary", "Lightly Active", "Moderately Active", "Very Active", "Extra Active"),
+                    onSelect = { activityLevel = it }
+                )
+            }
+        }
+
+        CardPremium {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SectionTitle("Goals & Nutrition")
+
+                PremiumDropdown(
+                    label = "Your Goal",
+                    value = goal,
+                    enabled = isEditing,
+                    options = listOf("Lose Weight", "Maintain Weight", "Gain Weight", "Build Muscle"),
+                    onSelect = { goal = it }
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    PremiumField(
+                        label = "Target Weight (kg)",
+                        value = targetWeight,
+                        enabled = isEditing,
+                        onValueChange = { targetWeight = it.filter { ch -> ch.isDigit() || ch == '.' }.take(6) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    PremiumField(
+                        label = "Meals Per Day",
+                        value = mealsPerDay,
+                        enabled = isEditing,
+                        onValueChange = { mealsPerDay = it.filter { ch -> ch.isDigit() }.take(1) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+
+        CardPremium {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SectionTitle("Health Profile")
+                
+                PremiumField(
+                    label = "Health Conditions (comma separated)",
+                    value = healthConditions,
+                    enabled = isEditing,
+                    onValueChange = { healthConditions = it }
+                )
 
                 if (isEditing) {
                     Row(
@@ -372,11 +434,6 @@ private fun ProfilePremiumContent(
                     ) {
                         OutlinedButton(
                             onClick = {
-                                name = user.name
-                                age = if (user.age == 0) "" else user.age.toString()
-                                gender = user.gender
-                                height = if (user.height == 0f) "" else user.height.toString()
-                                weight = if (user.weight == 0f) "" else user.weight.toString()
                                 onCancelChanges()
                             },
                             modifier = Modifier.weight(1f),
@@ -394,7 +451,12 @@ private fun ProfilePremiumContent(
                                     age = age.toIntOrNull() ?: 0,
                                     gender = gender.trim(),
                                     height = height.toFloatOrNull() ?: 0f,
-                                    weight = weight.toFloatOrNull() ?: 0f
+                                    weight = weight.toFloatOrNull() ?: 0f,
+                                    activityLevel = activityLevel,
+                                    goal = goal,
+                                    targetWeight = targetWeight.toFloatOrNull() ?: 0f,
+                                    mealsPerDay = mealsPerDay.toIntOrNull() ?: 0,
+                                    healthConditions = healthConditions.split(",").map { it.trim() }.filter { it.isNotEmpty() }
                                 )
                                 onSaveUser(updated)
                             },

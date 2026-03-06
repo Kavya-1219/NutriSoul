@@ -59,6 +59,8 @@ fun GoalWeightScreen(navController: NavController, userViewModel: UserViewModel)
     val currentWeight = user?.currentWeight?.toInt() ?: 0
     var targetWeight by remember { mutableStateOf("") }
     val goalType = user?.goal ?: ""
+    
+    var selectedTimelineWeeks by remember { mutableStateOf(7) }
 
     val target = targetWeight.toIntOrNull()
     val weightDifference =
@@ -105,7 +107,10 @@ fun GoalWeightScreen(navController: NavController, userViewModel: UserViewModel)
                     Spacer(modifier = Modifier.height(24.dp))
                     EstimatedTimelineCard(estimatedWeeks)
                     Spacer(modifier = Modifier.height(32.dp))
-                    TimelineSection()
+                    TimelineSection(
+                        selectedWeeks = selectedTimelineWeeks,
+                        onWeeksSelected = { selectedTimelineWeeks = it }
+                    )
                     Spacer(modifier = Modifier.height(24.dp))
                     SafetyTipCard()
                     Spacer(modifier = Modifier.height(16.dp))
@@ -116,7 +121,7 @@ fun GoalWeightScreen(navController: NavController, userViewModel: UserViewModel)
                 modifier = Modifier.padding(24.dp),
                 enabled = targetWeight.isNotEmpty(),
                 onClick = {
-                    userViewModel.updateTargetWeight(target?.toFloat() ?: 0f)
+                    userViewModel.updateTargetWeight(target?.toFloat() ?: 0f, selectedTimelineWeeks)
                     navController.navigate(Screen.HealthConditions.route)
                 }
             )
@@ -231,6 +236,7 @@ fun WeightInfoSection(
 
 data class TimelineInfo(
     val duration: String,
+    val weeks: Int,
     val pace: String,
     val rate: String,
     val recommended: Boolean,
@@ -239,23 +245,21 @@ data class TimelineInfo(
 )
 
 @Composable
-fun TimelineSection() {
+fun TimelineSection(selectedWeeks: Int, onWeeksSelected: (Int) -> Unit) {
     Text("Choose Your Timeline", fontWeight = FontWeight.Bold, fontSize = 18.sp)
     Spacer(modifier = Modifier.height(16.dp))
 
-    var selectedTimeline by remember { mutableStateOf("7 weeks") }
-
     val timelines = listOf(
-        TimelineInfo("6 weeks", "Aggressive pace", "~1 kg/week", false, Color(0xFFFFF3E0), Color(0xFFFB8C00)),
-        TimelineInfo("7 weeks", "Recommended pace", "~0.75 kg/week", true, Color(0xFFE8F5E9), PrimaryGreen),
-        TimelineInfo("11 weeks", "Gradual pace", "~0.5 kg/week", false, Color(0xFFE3F2FD), Color(0xFF2196F3))
+        TimelineInfo("6 weeks", 6, "Aggressive pace", "~1 kg/week", false, Color(0xFFFFF3E0), Color(0xFFFB8C00)),
+        TimelineInfo("7 weeks", 7, "Recommended pace", "~0.75 kg/week", true, Color(0xFFE8F5E9), PrimaryGreen),
+        TimelineInfo("11 weeks", 11, "Gradual pace", "~0.5 kg/week", false, Color(0xFFE3F2FD), Color(0xFF2196F3))
     )
 
     timelines.forEach { timeline ->
         TimelineOptionCard(
             info = timeline,
-            selected = selectedTimeline == timeline.duration,
-            onClick = { selectedTimeline = timeline.duration }
+            selected = selectedWeeks == timeline.weeks,
+            onClick = { onWeeksSelected(timeline.weeks) }
         )
         Spacer(modifier = Modifier.height(12.dp))
     }

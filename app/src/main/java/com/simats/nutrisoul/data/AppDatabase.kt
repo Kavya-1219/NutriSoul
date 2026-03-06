@@ -20,7 +20,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SleepLogEntity::class,
         SleepScheduleEntity::class
     ], 
-    version = 11, 
+    version = 12,
     exportSchema = false
 )
 @TypeConverters(

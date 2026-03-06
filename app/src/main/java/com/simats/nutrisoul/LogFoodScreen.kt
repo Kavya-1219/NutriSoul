@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.simats.nutrisoul.ui.FoodItemUi
+import com.simats.nutrisoul.ui.theme.LocalDarkTheme
 import java.io.File
 import kotlin.math.roundToInt
 
@@ -101,151 +102,155 @@ fun LogFoodScreen(
     // --------------------------------
 
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF6F7FB))
-    ) {
-        // ✅ Fix 2: ONE Scroll System - Professional LazyColumn structure
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(bottom = 32.dp)
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = { BottomNavigationBar(navController = navController) }
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            item {
-                LogFoodHeader(onBack = { navController.popBackStack() })
-            }
-
-            item {
-                Box(Modifier.padding(horizontal = 16.dp)) {
-                    TodayCaloriesCard(
-                        calories = todayTotals.calories,
-                        targetCalories = targetCalories,
-                        protein = todayTotals.protein,
-                        carbs = todayTotals.carbs,
-                        fats = todayTotals.fats,
-                        progress = animatedProgress
-                    )
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(bottom = 32.dp)
+            ) {
+                item {
+                    LogFoodHeader(onBack = { navController.popBackStack() })
                 }
-            }
 
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    GradientActionCard(
-                        modifier = Modifier.weight(1f),
-                        title = "Scan Food",
-                        subtitle = "AI Detection",
-                        icon = Icons.Default.CameraAlt,
-                        gradient = Brush.horizontalGradient(listOf(Color(0xFF8B5CF6), Color(0xFF4F46E5))),
-                        onClick = {
-                            when (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)) {
-                                PackageManager.PERMISSION_GRANTED -> {
-                                    tempUri = createTempImageUri(context)
-                                    takePicture.launch(tempUri)
+                item {
+                    Box(Modifier.padding(horizontal = 16.dp)) {
+                        TodayCaloriesCard(
+                            calories = todayTotals.calories,
+                            targetCalories = targetCalories,
+                            protein = todayTotals.protein,
+                            carbs = todayTotals.carbs,
+                            fats = todayTotals.fats,
+                            progress = animatedProgress
+                        )
+                    }
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        GradientActionCard(
+                            modifier = Modifier.weight(1f),
+                            title = "Scan Food",
+                            subtitle = "AI Detection",
+                            icon = Icons.Default.CameraAlt,
+                            gradient = Brush.horizontalGradient(listOf(Color(0xFF8B5CF6), Color(0xFF4F46E5))),
+                            onClick = {
+                                when (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)) {
+                                    PackageManager.PERMISSION_GRANTED -> {
+                                        tempUri = createTempImageUri(context)
+                                        takePicture.launch(tempUri)
+                                    }
+                                    else -> {
+                                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                    }
                                 }
-                                else -> {
-                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                                }
+                            },
+                            height = 120.dp
+                        )
+
+                        GradientActionCard(
+                            modifier = Modifier.weight(1f),
+                            title = "Upload",
+                            subtitle = "From Gallery",
+                            icon = Icons.Default.Add,
+                            gradient = Brush.horizontalGradient(listOf(Color(0xFF10B981), Color(0xFF059669))),
+                            onClick = { pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                            height = 120.dp
+                        )
+                    }
+                }
+
+                item {
+                    Box(Modifier.padding(horizontal = 16.dp)) {
+                        GradientActionCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            title = "Manual Entry",
+                            subtitle = "Type and log food",
+                            icon = Icons.Default.Edit,
+                            gradient = Brush.horizontalGradient(
+                                listOf(Color(0xFFFF5FA2), Color(0xFFFF2D55))
+                            ),
+                            onClick = { showManualSheet = true },
+                            height = 125.dp
+                        )
+                    }
+                }
+
+                item {
+                    Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        FoodSearchCard(
+                            query = query,
+                            onQueryChanged = viewModel::onQueryChanged,
+                            results = searchResults,
+                            localFoods = suggestedFoods,
+                            onFoodPick = { selectedFood = it },
+                            onQuickAddLocal = { item ->
+                                viewModel.addFood(item, item.servingQuantity)
                             }
-                        },
-                        height = 120.dp
-                    )
-
-                    GradientActionCard(
-                        modifier = Modifier.weight(1f),
-                        title = "Upload",
-                        subtitle = "From Gallery",
-                        icon = Icons.Default.Add,
-                        gradient = Brush.horizontalGradient(listOf(Color(0xFF10B981), Color(0xFF059669))),
-                        onClick = { pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                        height = 120.dp
-                    )
+                        )
+                    }
                 }
             }
 
-            item {
-                // ✅ Fix 1: Manual Entry subtitle visible (taller card + stronger text)
-                Box(Modifier.padding(horizontal = 16.dp)) {
-                    GradientActionCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        title = "Manual Entry",
-                        subtitle = "Type and log food",
-                        icon = Icons.Default.Edit,
-                        gradient = Brush.horizontalGradient(
-                            listOf(Color(0xFFFF5FA2), Color(0xFFFF2D55)) // 🩷 pink gradient
-                        ),
-                        onClick = { showManualSheet = true },
-                        height = 125.dp
-                    )
-                }
+            selectedFood?.let { food ->
+                FoodDetailsBottomSheet(
+                    foodItem = food,
+                    onDismiss = { selectedFood = null },
+                    onLogFood = { item, qty ->
+                        viewModel.addFood(item, qty)
+                        selectedFood = null
+                    }
+                )
             }
 
-            item {
-                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    FoodSearchCard(
-                        query = query,
-                        onQueryChanged = viewModel::onQueryChanged,
-                        results = searchResults,
-                        localFoods = suggestedFoods,
-                        onFoodPick = { selectedFood = it },
-                        onQuickAddLocal = { item ->
+            if (showManualSheet) {
+                ManualEntryBottomSheet(
+                    onDismiss = { showManualSheet = false },
+                    onSave = { manual ->
+                        viewModel.addManualFood(
+                            name = manual.name,
+                            quantity = manual.quantity,
+                            calories = manual.calories,
+                            protein = manual.protein,
+                            carbs = manual.carbs,
+                            fats = manual.fats
+                        )
+                        showManualSheet = false
+                    }
+                )
+            }
+
+            if (showScanResults) {
+                ScanResultBottomSheet(
+                    uiState = uiState,
+                    onDismiss = { showScanResults = false },
+                    onLogFood = { item, qty ->
+                        viewModel.addFood(item, qty)
+                    },
+                    onLogAll = { items ->
+                        items.forEach { item ->
                             viewModel.addFood(item, item.servingQuantity)
                         }
-                    )
-                }
-            }
-        }
-
-        selectedFood?.let { food ->
-            FoodDetailsBottomSheet(
-                foodItem = food,
-                onDismiss = { selectedFood = null },
-                onLogFood = { item, qty ->
-                    viewModel.addFood(item, qty)
-                    selectedFood = null
-                }
-            )
-        }
-
-        if (showManualSheet) {
-            ManualEntryBottomSheet(
-                onDismiss = { showManualSheet = false },
-                onSave = { manual ->
-                    viewModel.addManualFood(
-                        name = manual.name,
-                        quantity = manual.quantity,
-                        calories = manual.calories,
-                        protein = manual.protein,
-                        carbs = manual.carbs,
-                        fats = manual.fats
-                    )
-                    showManualSheet = false
-                }
-            )
-        }
-
-        if (showScanResults) {
-            ScanResultBottomSheet(
-                uiState = uiState,
-                onDismiss = { showScanResults = false },
-                onLogFood = { item, qty ->
-                    viewModel.addFood(item, qty)
-                },
-                onLogAll = { items ->
-                    items.forEach { item ->
-                        viewModel.addFood(item, item.servingQuantity)
+                    },
+                    onManualEntry = {
+                        showScanResults = false
+                        showManualSheet = true
                     }
-                },
-                onManualEntry = {
-                    showScanResults = false
-                    showManualSheet = true
-                }
-            )
+                )
+            }
         }
     }
 }
@@ -267,14 +272,17 @@ fun ScanResultBottomSheet(
     onLogAll: (List<FoodItemUi>) -> Unit,
     onManualEntry: () -> Unit
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Scan Results", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text("Scan Results", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.height(16.dp))
 
             uiState.imageUri?.let { uri ->
@@ -291,14 +299,14 @@ fun ScanResultBottomSheet(
 
             if (uiState.isLoading) {
                 CircularProgressIndicator()
-                Text("Analyzing image...", modifier = Modifier.padding(top = 16.dp))
+                Text("Analyzing image...", modifier = Modifier.padding(top = 16.dp), color = MaterialTheme.colorScheme.onSurface)
             } else {
                 uiState.error?.let {
                     Text(it, color = MaterialTheme.colorScheme.error)
                 }
 
                 if (uiState.nutrition.isNotEmpty()) {
-                    Text("We found these items:", fontWeight = FontWeight.Bold)
+                    Text("We found these items:", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -313,11 +321,11 @@ fun ScanResultBottomSheet(
                     }
                 } else {
                     if (uiState.extractedText.isNotBlank()) {
-                        Text("Extracted text:")
-                        Text(uiState.extractedText)
+                        Text("Extracted text:", color = MaterialTheme.colorScheme.onSurface)
+                        Text(uiState.extractedText, color = MaterialTheme.colorScheme.onSurface)
                         Spacer(Modifier.height(12.dp))
                     }
-                    Text("No food items recognized automatically.")
+                    Text("No food items recognized automatically.", color = MaterialTheme.colorScheme.onSurface)
                     Spacer(Modifier.height(12.dp))
                     Button(onClick = onManualEntry) {
                         Text("Enter Manually")
@@ -385,7 +393,7 @@ private fun TodayCaloriesCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
         elevation = CardDefaults.cardElevation(10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(Modifier.padding(18.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -393,7 +401,7 @@ private fun TodayCaloriesCard(
                     "Today's Calories",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1F2937)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(Modifier.weight(1f))
                 Text(
@@ -411,7 +419,7 @@ private fun TodayCaloriesCard(
                     .fillMaxWidth()
                     .height(10.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .background(Color(0xFFE5E7EB))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Box(
                     modifier = Modifier
@@ -439,8 +447,8 @@ private fun TodayCaloriesCard(
 @Composable
 private fun MacroMini(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, fontSize = 14.sp, color = Color(0xFF6B7280))
-        Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF111827))
+        Text(label, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
@@ -509,6 +517,7 @@ private fun FoodSearchCard(
     onQuickAddLocal: (FoodItemUi) -> Unit
 ) {
     var showAllSuggested by remember { mutableStateOf(false) }
+    val isDark = LocalDarkTheme.current
 
     val localMatches = remember(query) {
         localFoods.filter { it.name.contains(query, ignoreCase = true) }
@@ -520,14 +529,14 @@ private fun FoodSearchCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
         elevation = CardDefaults.cardElevation(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(Modifier.padding(16.dp)) {
             Text(
                 "Search Food",
                 fontWeight = FontWeight.Bold,
                 fontSize = 22.sp,
-                color = Color(0xFF1F2937)
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(Modifier.height(12.dp))
 
@@ -538,7 +547,11 @@ private fun FoodSearchCard(
                 placeholder = { Text("Search for food...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
                 shape = RoundedCornerShape(14.dp),
-                singleLine = true
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                )
             )
 
             Spacer(Modifier.height(12.dp))
@@ -575,14 +588,13 @@ private fun FoodSearchCard(
                     }
 
                     else -> {
-                        Text("No foods found", color = Color(0xFF6B7280), modifier = Modifier.padding(8.dp))
+                        Text("No foods found", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(8.dp))
                     }
                 }
             } else {
-                Text("Suggested Foods", fontWeight = FontWeight.Bold, color = Color(0xFF4B5563))
+                Text("Suggested Foods", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(8.dp))
                 
-                // ✅ Fix 3: Show 5 items + "See all" (no nested scroll conflict)
                 val suggestedToShow = if (showAllSuggested) localFoods else localFoods.take(5)
 
                 Column(
@@ -603,7 +615,7 @@ private fun FoodSearchCard(
                             onClick = { showAllSuggested = true },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("See all suggested foods", color = Color(0xFF4F46E5), fontWeight = FontWeight.SemiBold)
+                            Text("See all suggested foods", color = if(isDark) Color(0xFF818CF8) else Color(0xFF4F46E5), fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -627,8 +639,8 @@ fun SearchResultRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {
-            Text(item.name, fontWeight = FontWeight.Medium)
-            Text("${item.calories.roundToInt()} kcal • ${item.servingQuantity}${item.servingUnit}", fontSize = 12.sp, color = Color.Gray)
+            Text(item.name, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+            Text("${item.calories.roundToInt()} kcal • ${item.servingQuantity}${item.servingUnit}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (isLocal && onQuickAdd != null) {
             IconButton(onClick = onQuickAdd) {

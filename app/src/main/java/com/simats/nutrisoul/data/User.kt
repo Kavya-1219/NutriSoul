@@ -17,6 +17,7 @@ data class User(
     val goal: String = "",
     val targetWeight: Float = 0f,
     val currentWeight: Float = 0f,
+    val targetWeeks: Int = 12, // Default timeline
     val mealsPerDay: Int = 0,
     val healthConditions: List<String> = emptyList(),
     val todaysCalories: Int = 0,

@@ -138,6 +138,7 @@ class UserViewModel @Inject constructor(
             goal = doc.getString("goal") ?: "",
             targetWeight = getFloat("targetWeight"),
             currentWeight = getFloat("currentWeight"),
+            targetWeeks = getInt("targetWeeks"),
             mealsPerDay = getInt("mealsPerDay"),
             healthConditions = (doc.get("healthConditions") as? List<*>)?.mapNotNull { it.toString() } ?: emptyList(),
             todaysCalories = getInt("todaysCalories"),
@@ -208,8 +209,8 @@ class UserViewModel @Inject constructor(
         _user.value?.let { currentUser -> updateUser(currentUser.copy(goal = goal)) }
     }
 
-    fun updateTargetWeight(weight: Float) {
-        _user.value?.let { currentUser -> updateUser(currentUser.copy(targetWeight = weight)) }
+    fun updateTargetWeight(weight: Float, weeks: Int) {
+        _user.value?.let { currentUser -> updateUser(currentUser.copy(targetWeight = weight, targetWeeks = weeks)) }
     }
 
     fun updateCurrentWeight(weight: Float) {

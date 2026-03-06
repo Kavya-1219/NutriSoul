@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.simats.nutrisoul.ui.theme.LocalDarkTheme
 import kotlinx.coroutines.launch
 
 data class Recipe(
@@ -272,18 +273,18 @@ fun RecipesScreen(navController: NavController, userEmail: String) {
         .toList()
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val scope = rememberCoroutineScope()
 
     BackHandler(enabled = selectedRecipe != null) { selectedRecipe = null }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = { BottomNavigationBar(navController = navController) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-                .background(Color(0xFFF3F5F7))
+                .background(MaterialTheme.colorScheme.background)
         ) {
             Header(searchQuery = searchQuery, onSearchQueryChange = { searchQuery = it })
 
@@ -317,7 +318,7 @@ fun RecipesScreen(navController: NavController, userEmail: String) {
         ModalBottomSheet(
             onDismissRequest = { selectedRecipe = null },
             sheetState = sheetState,
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
         ) {
             RecipeDetailSheet(
@@ -332,6 +333,7 @@ fun RecipesScreen(navController: NavController, userEmail: String) {
 
 @Composable
 private fun Header(searchQuery: String, onSearchQueryChange: (String) -> Unit) {
+    val isDark = LocalDarkTheme.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -359,11 +361,13 @@ private fun Header(searchQuery: String, onSearchQueryChange: (String) -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(14.dp),
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                disabledContainerColor = Color.White,
+                focusedContainerColor = if(isDark) Color(0xFF333333) else Color.White,
+                unfocusedContainerColor = if(isDark) Color(0xFF333333) else Color.White,
+                disabledContainerColor = if(isDark) Color(0xFF333333) else Color.White,
                 focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
+                unfocusedIndicatorColor = Color.Transparent,
+                focusedTextColor = if(isDark) Color.White else Color.Black,
+                unfocusedTextColor = if(isDark) Color.White else Color.Black
             )
         )
     }
@@ -379,8 +383,8 @@ private fun CategoryTabs(
 
     ScrollableTabRow(
         selectedTabIndex = selectedTabIndex,
-        containerColor = Color.White,
-        contentColor = Color.Black,
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
         edgePadding = 12.dp,
         indicator = { tabPositions ->
             TabRowDefaults.Indicator(
@@ -415,7 +419,7 @@ private fun FiltersRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 12.dp, vertical = 10.dp)
             .horizontalScroll(scroll),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -465,11 +469,12 @@ private fun RecipeCard(
     onClick: () -> Unit,
     onToggleFavorite: () -> Unit
 ) {
+    val isDark = LocalDarkTheme.current
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
         elevation = CardDefaults.cardElevation(4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column {
             Box(
@@ -478,7 +483,7 @@ private fun RecipeCard(
                     .height(120.dp)
                     .background(
                         brush = Brush.verticalGradient(
-                            colors = listOf(Color(0xFFFFF3E0), Color(0xFFFFE0B2))
+                            colors = if(isDark) listOf(Color(0xFF422100), Color(0xFF5D3D00)) else listOf(Color(0xFFFFF3E0), Color(0xFFFFE0B2))
                         )
                     ),
                 contentAlignment = Alignment.Center
@@ -492,7 +497,7 @@ private fun RecipeCard(
                         .padding(8.dp)
                         .size(34.dp)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(if(isDark) Color(0xFF333333) else Color.White)
                 ) {
                     Icon(
                         imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
@@ -508,7 +513,7 @@ private fun RecipeCard(
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     maxLines = 2,
-                    color = Color(0xFF1F2937)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 MiniRow(Icons.Default.Schedule, recipe.cookTime)
@@ -524,16 +529,25 @@ private fun RecipeCard(
 @Composable
 private fun MiniRow(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
         Spacer(modifier = Modifier.width(6.dp))
-        Text(text = text, fontSize = 12.sp, color = Color.Gray)
+        Text(text = text, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 private fun DifficultyChip(difficulty: String) {
-    val bg = if (difficulty == "Easy") Color(0xFFC8E6C9) else Color(0xFFFFE0B2)
-    val fg = if (difficulty == "Easy") Color(0xFF2E7D32) else Color(0xFFEF6C00)
+    val isDark = LocalDarkTheme.current
+    val bg = if (difficulty == "Easy") {
+        if(isDark) Color(0xFF1B5E20) else Color(0xFFC8E6C9)
+    } else {
+        if(isDark) Color(0xFFE65100) else Color(0xFFFFE0B2)
+    }
+    val fg = if (difficulty == "Easy") {
+        if(isDark) Color(0xFFC8E6C9) else Color(0xFF2E7D32)
+    } else {
+        if(isDark) Color(0xFFFFE0B2) else Color(0xFFEF6C00)
+    }
 
     Text(
         text = difficulty,
@@ -559,7 +573,7 @@ private fun EmptyState(isFavorites: Boolean) {
         Icon(
             if (isFavorites) Icons.Default.FavoriteBorder else Icons.Default.SearchOff,
             contentDescription = null,
-            tint = Color.Gray,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(48.dp)
         )
         Spacer(modifier = Modifier.height(12.dp))
@@ -567,13 +581,13 @@ private fun EmptyState(isFavorites: Boolean) {
             if (isFavorites) "No favorites yet" else "No recipes found",
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp,
-            color = Color(0xFF374151)
+            color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             if (isFavorites) "Tap ❤️ on any recipe to save it here." else "Try another keyword, category, or filter.",
             fontSize = 14.sp,
-            color = Color.Gray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
     }
@@ -586,6 +600,7 @@ private fun RecipeDetailSheet(
     onClose: () -> Unit,
     onToggleFavorite: (Int) -> Unit
 ) {
+    val isDark = LocalDarkTheme.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -619,7 +634,7 @@ private fun RecipeDetailSheet(
         }
 
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(recipe.name, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = Color(0xFF111827))
+            Text(recipe.name, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = MaterialTheme.colorScheme.onSurface)
             Spacer(modifier = Modifier.height(12.dp))
 
             Row(
@@ -639,14 +654,14 @@ private fun RecipeDetailSheet(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     recipe.ingredients.forEach {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.FiberManualRecord, contentDescription = null, modifier = Modifier.size(8.dp), tint = Color(0xFFFFB74D))
                             Spacer(modifier = Modifier.width(10.dp))
-                            Text(it, color = Color(0xFF374151))
+                            Text(it, color = MaterialTheme.colorScheme.onSurface)
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                     }
@@ -667,7 +682,7 @@ private fun RecipeDetailSheet(
                         Text("${index + 1}", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.width(10.dp))
-                    Text(instruction, color = Color(0xFF374151), modifier = Modifier.padding(top = 3.dp))
+                    Text(instruction, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(top = 3.dp))
                 }
             }
 
@@ -685,7 +700,7 @@ private fun RecipeDetailSheet(
                     contentDescription = "Favorite"
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(if (isFavorite) "Remove from Favorites" else "Add to Favorites")
+                Text(if (isFavorite) "Remove from Favorites" else "Add to Favorites", color = Color.White)
             }
         }
     }
@@ -693,7 +708,7 @@ private fun RecipeDetailSheet(
 
 @Composable
 private fun SectionTitle(title: String) {
-    Text(title, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF111827))
+    Text(title, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
     Spacer(modifier = Modifier.height(8.dp))
 }
 
@@ -701,7 +716,7 @@ private fun SectionTitle(title: String) {
 private fun InfoChip(label: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
     Card(
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
@@ -710,8 +725,8 @@ private fun InfoChip(label: String, value: String, icon: androidx.compose.ui.gra
             Icon(icon, contentDescription = null, tint = Color(0xFFFFB74D), modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
             Column {
-                Text(value, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF111827))
-                Text(label, fontSize = 11.sp, color = Color.Gray)
+                Text(value, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -722,7 +737,7 @@ private fun NutritionCard(recipe: Recipe) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
     ) {
         Row(
             modifier = Modifier
@@ -740,8 +755,19 @@ private fun NutritionCard(recipe: Recipe) {
 
 @Composable
 private fun Macro(label: String, value: String, color: Color) {
+    val isDark = LocalDarkTheme.current
+    val adjustedColor = if(isDark) {
+        when(label) {
+            "Protein" -> Color(0xFF60A5FA)
+            "Carbs" -> Color(0xFF2DD4BF)
+            "Fats" -> Color(0xFFA78BFA)
+            "Fiber" -> Color(0xFF4ADE80)
+            else -> color
+        }
+    } else color
+
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = color)
-        Text(label, fontSize = 11.sp, color = Color.Gray)
+        Text(value, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = adjustedColor)
+        Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

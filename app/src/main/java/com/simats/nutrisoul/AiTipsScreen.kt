@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.simats.nutrisoul.data.UserViewModel
+import com.simats.nutrisoul.ui.theme.LocalDarkTheme
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -75,7 +76,7 @@ fun AiTipsScreen(navController: NavController, userViewModel: UserViewModel) {
         colors = listOf(Color(0xFF8E24AA), Color(0xFFD81B60))
     )
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // Header background (Figma style)
         Box(
             modifier = Modifier
@@ -120,7 +121,7 @@ fun AiTipsScreen(navController: NavController, userViewModel: UserViewModel) {
             // Main surface (White rounded container)
             Surface(
                 modifier = Modifier.fillMaxSize(),
-                color = Color(0xFFF6F7FB),
+                color = MaterialTheme.colorScheme.background,
                 shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
             ) {
                 if (user == null) {
@@ -133,7 +134,7 @@ fun AiTipsScreen(navController: NavController, userViewModel: UserViewModel) {
                             Spacer(modifier = Modifier.height(10.dp))
                             Text(
                                 stringResource(R.string.analyzing_profile),
-                                color = Color.DarkGray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 14.sp
                             )
                         }
@@ -151,12 +152,12 @@ fun AiTipsScreen(navController: NavController, userViewModel: UserViewModel) {
                         item {
                             Text(
                                 text = stringResource(R.string.personalized_insights_for),
-                                color = Color(0xFF5B6472),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 14.sp
                             )
                             Text(
                                 text = user.name.ifBlank { stringResource(R.string.default_user_name) },
-                                color = Color(0xFF111827),
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
@@ -173,7 +174,7 @@ fun AiTipsScreen(navController: NavController, userViewModel: UserViewModel) {
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = stringResource(R.string.your_personalized_plan),
-                                color = Color(0xFF111827),
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -230,7 +231,7 @@ private fun buildRecommendations(user: com.simats.nutrisoul.data.User): List<Rec
             "Your BMI is $bmiStatus. Based on current trends, " + when(bmiStatus) {
                 "Underweight" -> "increasing calorie density is recommended to build healthy mass."
                 "Normal" -> "you are in the optimal range. Focus on maintaining metabolic flexibility."
-                "Overweight", "Obese" -> "a slight calorie deficit is recommended to reduce systemic inflammation."
+                "Overweight", "Obese" -> "a calorie deficit is recommended to reduce systemic inflammation."
                 else -> ""
             },
             Icons.Default.Info,
@@ -385,7 +386,7 @@ private fun buildRecommendations(user: com.simats.nutrisoul.data.User): List<Rec
 private fun GoalCard(goal: String) {
     Card(
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
     ) {
@@ -413,13 +414,13 @@ private fun GoalCard(goal: String) {
             }
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.your_goal_label), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF6B7280))
-                Text(goal, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF111827))
+                Text(stringResource(R.string.your_goal_label), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(goal, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     stringResource(R.string.goal_card_description),
                     fontSize = 13.sp,
-                    color = Color(0xFF6B7280)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -428,11 +429,12 @@ private fun GoalCard(goal: String) {
 
 @Composable
 private fun RecommendationCard(rec: Recommendation) {
+    val isDark = LocalDarkTheme.current
     Card(
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = rec.cardBg),
+        colors = CardDefaults.cardColors(containerColor = if (isDark) rec.cardBg.copy(alpha = 0.15f) else rec.cardBg),
         modifier = Modifier.fillMaxWidth(),
-        border = androidx.compose.foundation.BorderStroke(1.dp, rec.border),
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) rec.border.copy(alpha = 0.3f) else rec.border),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(modifier = Modifier.padding(16.dp)) {
@@ -447,9 +449,9 @@ private fun RecommendationCard(rec: Recommendation) {
             }
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(rec.title, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF111827))
+                Text(rec.title, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(6.dp))
-                Text(rec.description, fontSize = 13.sp, color = Color(0xFF374151), lineHeight = 18.sp)
+                Text(rec.description, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface, lineHeight = 18.sp)
             }
         }
     }
@@ -457,11 +459,12 @@ private fun RecommendationCard(rec: Recommendation) {
 
 @Composable
 private fun ProTipsCard() {
+    val isDark = LocalDarkTheme.current
     Card(
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFBEB)),
+        colors = CardDefaults.cardColors(containerColor = if (isDark) Color(0xFFFFFBEB).copy(alpha = 0.15f) else Color(0xFFFFFBEB)),
         modifier = Modifier.fillMaxWidth(),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFDE68A))
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color(0xFFFDE68A).copy(alpha = 0.3f) else Color(0xFFFDE68A))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -475,7 +478,7 @@ private fun ProTipsCard() {
                     Icon(Icons.Default.Star, contentDescription = stringResource(R.string.pro_tips_icon), tint = Color.White)
                 }
                 Spacer(modifier = Modifier.width(12.dp))
-                Text(stringResource(R.string.pro_tips_label), fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF111827))
+                Text(stringResource(R.string.pro_tips_label), fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -488,8 +491,8 @@ private fun ProTipsCard() {
             )
             tips.forEach { tip ->
                 Row(modifier = Modifier.padding(bottom = 6.dp)) {
-                    Text("•  ", color = Color(0xFF6B7280))
-                    Text(tip, fontSize = 13.sp, color = Color(0xFF374151))
+                    Text("•  ", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(tip, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
@@ -498,11 +501,12 @@ private fun ProTipsCard() {
 
 @Composable
 private fun NoteCard() {
+    val isDark = LocalDarkTheme.current
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF6FF)),
+        colors = CardDefaults.cardColors(containerColor = if (isDark) Color(0xFFEFF6FF).copy(alpha = 0.15f) else Color(0xFFEFF6FF)),
         modifier = Modifier.fillMaxWidth(),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBFDBFE))
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color(0xFFBFDBFE).copy(alpha = 0.3f) else Color(0xFFBFDBFE))
     ) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.Top) {
             Icon(
@@ -515,7 +519,7 @@ private fun NoteCard() {
             Text(
                 stringResource(R.string.medical_disclaimer),
                 fontSize = 12.sp,
-                color = Color(0xFF1F2937),
+                color = MaterialTheme.colorScheme.onSurface,
                 lineHeight = 16.sp
             )
         }

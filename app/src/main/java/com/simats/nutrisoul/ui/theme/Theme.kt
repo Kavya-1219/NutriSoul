@@ -5,6 +5,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 private val LightColorScheme = lightColorScheme(
@@ -25,6 +27,8 @@ private val DarkColorScheme = darkColorScheme(
     onSurfaceVariant = Color.Gray
 )
 
+val LocalDarkTheme = staticCompositionLocalOf { false }
+
 @Composable
 fun NutriSoulTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -36,9 +40,11 @@ fun NutriSoulTheme(
         LightColorScheme
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalDarkTheme provides darkTheme) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

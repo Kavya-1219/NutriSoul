@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.simats.nutrisoul.ui.theme.LocalDarkTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +37,7 @@ fun NutritionInsightsScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text("Nutrition Insights") },
@@ -57,6 +59,7 @@ fun NutritionInsightsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
         ) {
             Header()
@@ -112,50 +115,52 @@ private fun LoadingBody() {
         Spacer(Modifier.height(18.dp))
         CircularProgressIndicator()
         Spacer(Modifier.height(12.dp))
-        Text("Loading insights…", color = Color.Gray)
+        Text("Loading insights…", color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 private fun EmptyBody() {
+    val isDark = LocalDarkTheme.current
     Column(modifier = Modifier.padding(16.dp)) {
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(10.dp)
+            elevation = CardDefaults.cardElevation(10.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
                 modifier = Modifier.padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(
-                    modifier = Modifier.size(72.dp).clip(CircleShape).background(Color(0xFFF3F4F6)),
+                    modifier = Modifier.size(72.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Filled.TrendingUp,
                         contentDescription = null,
-                        tint = Color(0xFF9CA3AF),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(34.dp)
                     )
                 }
                 Spacer(Modifier.height(12.dp))
-                Text("No Data Yet", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("No Data Yet", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(6.dp))
                 Text(
                     "Start logging your meals to see personalized nutrition insights and track your progress over time.",
-                    color = Color(0xFF6B7280),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
                 Spacer(Modifier.height(14.dp))
                 Card(
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF6FF))
+                    colors = CardDefaults.cardColors(containerColor = if(isDark) Color(0xFF1E3A8A).copy(alpha=0.3f) else Color(0xFFEFF6FF))
                 ) {
                     Text(
                         "💡 Tip: Log meals for at least 3–4 days to get meaningful insights!",
                         modifier = Modifier.padding(12.dp),
-                        color = Color(0xFF1E40AF),
+                        color = if(isDark) Color(0xFF93C5FD) else Color(0xFF1E40AF),
                         fontSize = 13.sp
                     )
                 }
@@ -182,7 +187,8 @@ private fun WeeklyConsistencyCard(data: NutritionInsightsData) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(10.dp)
+        elevation = CardDefaults.cardElevation(10.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(Modifier.padding(20.dp)) {
             Row(
@@ -190,7 +196,7 @@ private fun WeeklyConsistencyCard(data: NutritionInsightsData) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Weekly Consistency", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+                Text("Weekly Consistency", fontWeight = FontWeight.SemiBold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
                 Icon(Icons.Filled.WorkspacePremium, contentDescription = null, tint = Color(0xFFFFC107))
             }
 
@@ -202,18 +208,18 @@ private fun WeeklyConsistencyCard(data: NutritionInsightsData) {
                     modifier = Modifier.size(112.dp),
                     strokeWidth = 10.dp,
                     color = Color(0xFF10B981),
-                    trackColor = Color(0xFFE5E7EB)
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("${data.consistencyPercent}%", fontWeight = FontWeight.Bold, fontSize = 26.sp)
-                    Text("Logged", color = Color.Gray, fontSize = 12.sp)
+                    Text("${data.consistencyPercent}%", fontWeight = FontWeight.Bold, fontSize = 26.sp, color = MaterialTheme.colorScheme.onSurface)
+                    Text("Logged", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
             }
 
             Spacer(Modifier.height(14.dp))
             Text(
                 "${data.daysLogged} out of ${data.totalDays} days logged this week",
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
         }
@@ -223,13 +229,14 @@ private fun WeeklyConsistencyCard(data: NutritionInsightsData) {
 @Composable
 private fun AverageDailyIntakeCard(data: NutritionInsightsData) {
     val status = data.calorieStatus
+    val isDark = LocalDarkTheme.current
 
     val statusBg = when (status.tone) {
-        StatusTone.GOOD -> Color(0xFFECFDF5)
-        StatusTone.OK -> Color(0xFFEFF6FF)
-        StatusTone.WARN -> Color(0xFFFFF7ED)
-        StatusTone.INFO -> Color(0xFFFFFBEB)
-        StatusTone.NEUTRAL -> Color(0xFFF3F4F6)
+        StatusTone.GOOD -> if(isDark) Color(0xFF064E3B) else Color(0xFFECFDF5)
+        StatusTone.OK -> if(isDark) Color(0xFF1E3A8A) else Color(0xFFEFF6FF)
+        StatusTone.WARN -> if(isDark) Color(0xFF7C2D12) else Color(0xFFFFF7ED)
+        StatusTone.INFO -> if(isDark) Color(0xFF78350F) else Color(0xFFFFFBEB)
+        StatusTone.NEUTRAL -> MaterialTheme.colorScheme.surfaceVariant
     }
 
     val barColor = when (status.tone) {
@@ -246,7 +253,8 @@ private fun AverageDailyIntakeCard(data: NutritionInsightsData) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(10.dp)
+        elevation = CardDefaults.cardElevation(10.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(Modifier.padding(20.dp)) {
             Row(
@@ -254,8 +262,8 @@ private fun AverageDailyIntakeCard(data: NutritionInsightsData) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Average Daily Intake", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-                Icon(Icons.Filled.DateRange, contentDescription = null, tint = Color(0xFF6A1B9A))
+                Text("Average Daily Intake", fontWeight = FontWeight.SemiBold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
+                Icon(Icons.Filled.DateRange, contentDescription = null, tint = Color(0xFFAB47BC))
             }
 
             Spacer(Modifier.height(16.dp))
@@ -267,22 +275,22 @@ private fun AverageDailyIntakeCard(data: NutritionInsightsData) {
             ) {
                 Column(Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Calories", fontWeight = FontWeight.SemiBold)
+                        Text("Calories", fontWeight = FontWeight.SemiBold, color = if(status.tone == StatusTone.NEUTRAL) MaterialTheme.colorScheme.onSurfaceVariant else Color.Unspecified)
                         Spacer(Modifier.weight(1f))
-                        Text("${status.emoji} ${status.label}", color = Color(0xFF374151), fontWeight = FontWeight.SemiBold)
+                        Text("${status.emoji} ${status.label}", fontWeight = FontWeight.SemiBold)
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text("${data.averageCalories}", fontWeight = FontWeight.Bold, fontSize = 26.sp)
                         Spacer(Modifier.width(8.dp))
-                        Text("/ ${data.targetCalories} kcal", color = Color.Gray, fontSize = 16.sp)
+                        Text("/ ${data.targetCalories} kcal", color = if(isDark) Color.LightGray else Color.Gray, fontSize = 16.sp)
                     }
                     Spacer(Modifier.height(10.dp))
                     LinearProgressIndicator(
                         progress = progress,
                         modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(6.dp)),
                         color = barColor,
-                        trackColor = Color(0xFFE5E7EB)
+                        trackColor = Color(0xFFE5E7EB).copy(alpha = 0.3f)
                     )
                 }
             }
@@ -295,24 +303,24 @@ private fun AverageDailyIntakeCard(data: NutritionInsightsData) {
                     name = "Protein",
                     value = String.format("%.1fg", data.averageProtein),
                     percentage = "${data.proteinPercentage}%",
-                    bg = Color(0xFFEFF6FF),
-                    fg = Color(0xFF2563EB)
+                    bg = if(isDark) Color(0xFF1E3A8A).copy(alpha=0.4f) else Color(0xFFEFF6FF),
+                    fg = if(isDark) Color(0xFF93C5FD) else Color(0xFF2563EB)
                 )
                 MacroChip(
                     modifier = Modifier.weight(1f),
                     name = "Carbs",
                     value = String.format("%.1fg", data.averageCarbs),
                     percentage = "${data.carbsPercentage}%",
-                    bg = Color(0xFFFFF7ED),
-                    fg = Color(0xFFEA580C)
+                    bg = if(isDark) Color(0xFF7C2D12).copy(alpha=0.4f) else Color(0xFFFFF7ED),
+                    fg = if(isDark) Color(0xFFFDBA74) else Color(0xFFEA580C)
                 )
                 MacroChip(
                     modifier = Modifier.weight(1f),
                     name = "Fats",
                     value = String.format("%.1fg", data.averageFats),
                     percentage = "${data.fatsPercentage}%",
-                    bg = Color(0xFFFFFBEB),
-                    fg = Color(0xFFD97706)
+                    bg = if(isDark) Color(0xFF78350F).copy(alpha=0.4f) else Color(0xFFFFFBEB),
+                    fg = if(isDark) Color(0xFFFCD34D) else Color(0xFFD97706)
                 )
             }
         }
@@ -324,10 +332,11 @@ private fun MacroDistributionCard(data: NutritionInsightsData) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(10.dp)
+        elevation = CardDefaults.cardElevation(10.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(Modifier.padding(20.dp)) {
-            Text("Macro Distribution", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+            Text("Macro Distribution", fontWeight = FontWeight.SemiBold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.height(16.dp))
 
             MacroDistributionItem("Protein", data.proteinPercentage, "Recommended: 15–30%")
@@ -344,23 +353,24 @@ private fun MacroDistributionItem(name: String, pct: Int, recommended: String) {
     val progress = (pct / 100f).coerceIn(0f, 1f)
     Column {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(name, fontWeight = FontWeight.SemiBold)
-            Text("$pct%", color = Color(0xFF6A1B9A), fontWeight = FontWeight.Bold)
+            Text(name, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+            Text("$pct%", color = Color(0xFFAB47BC), fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.height(8.dp))
         LinearProgressIndicator(
             progress = progress,
             modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(6.dp)),
-            color = Color(0xFF6A1B9A),
-            trackColor = Color(0xFFE5E7EB)
+            color = Color(0xFFAB47BC),
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
         )
         Spacer(Modifier.height(4.dp))
-        Text(recommended, color = Color.Gray, fontSize = 12.sp)
+        Text(recommended, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
     }
 }
 
 @Composable
 private fun InsightsCard(data: NutritionInsightsData) {
+    val isDark = LocalDarkTheme.current
     val insights = buildList {
         if (data.consistencyPercent >= 80) add("✓ Great job staying consistent with logging!")
         if (data.consistencyPercent < 50) add("• Try to log meals more consistently for better insights")
@@ -376,7 +386,7 @@ private fun InsightsCard(data: NutritionInsightsData) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+        colors = CardDefaults.cardColors(containerColor = if(isDark) Color(0xFF064E3B).copy(alpha=0.3f) else Color(0xFFE8F5E9)),
         elevation = CardDefaults.cardElevation(10.dp)
     ) {
         Column(Modifier.padding(20.dp)) {
@@ -388,12 +398,12 @@ private fun InsightsCard(data: NutritionInsightsData) {
                     Icon(Icons.Filled.TrackChanges, contentDescription = null, tint = Color.White)
                 }
                 Spacer(Modifier.width(12.dp))
-                Text("Insights", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+                Text("Insights", fontWeight = FontWeight.SemiBold, fontSize = 18.sp, color = if(isDark) Color(0xFFA7F3D0) else Color(0xFF10B981))
             }
 
             Spacer(Modifier.height(12.dp))
             insights.forEachIndexed { i, line ->
-                Text(line)
+                Text(line, color = if(isDark) Color(0xFFD1FAE5) else Color(0xFF064E3B))
                 if (i != insights.lastIndex) Spacer(Modifier.height(6.dp))
             }
         }

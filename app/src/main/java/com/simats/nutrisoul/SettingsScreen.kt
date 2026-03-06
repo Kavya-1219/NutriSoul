@@ -81,6 +81,7 @@ fun SettingsScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = { BottomNavigationBar(navController = navController) }
     ) { innerPadding ->
         Column(
@@ -227,7 +228,7 @@ private fun ProfilePictureSection(
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = "Tap to change profile photo",
                     style = MaterialTheme.typography.bodySmall,

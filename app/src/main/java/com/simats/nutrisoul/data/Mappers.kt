@@ -30,7 +30,7 @@ fun FoodLog.toEntity(): IntakeEntity {
         carbs = carbs,
         fats = fats,
         mealType = mealType,
-        date = date,
+        date = date.toString(),
         quantity = quantity
     )
 }

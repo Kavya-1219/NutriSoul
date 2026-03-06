@@ -43,6 +43,7 @@ import androidx.navigation.NavController
 import com.simats.nutrisoul.ui.steps.AddStepsModal
 import com.simats.nutrisoul.ui.steps.RemoveStepsModal
 import com.simats.nutrisoul.ui.steps.StepsViewModel
+import com.simats.nutrisoul.ui.theme.LocalDarkTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,13 +80,13 @@ fun StepsTrackingScreen(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF0FDF4))
-    ) {
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = { BottomNavigationBar(navController = navController) }
+    ) { innerPadding ->
         Column(
             modifier = Modifier
+                .padding(innerPadding)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
@@ -208,6 +209,7 @@ private fun StepsContent(
 ) {
     val calories = (todaySteps * 0.04).toInt()
     val distance = todaySteps * 0.000762
+    val isDark = LocalDarkTheme.current
 
     Column(
         modifier = Modifier
@@ -259,13 +261,13 @@ private fun StepsContent(
                 .fillMaxWidth()
                 .height(62.dp),
             shape = RoundedCornerShape(20.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-            border = BorderStroke(1.dp, Color(0xFFE5E7EB))
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("➖", fontSize = 18.sp)
                 Spacer(Modifier.width(10.dp))
-                Text("Remove Steps", color = Color(0xFF065F46), fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                Text("Remove Steps", color = if (isDark) Color.White else Color(0xFF065F46), fontSize = 16.sp, fontWeight = FontWeight.Medium)
             }
         }
 
@@ -278,6 +280,7 @@ fun ProgressCard(steps: Long, goal: Int) {
     val progress = if (goal > 0) (steps.toFloat() / goal).coerceIn(0f, 1f) else 0f
     val animatedProgress by animateFloatAsState(targetValue = progress, animationSpec = tween(1000), label = "")
     val density = LocalDensity.current
+    val isDark = LocalDarkTheme.current
 
     val achievement = when {
         steps >= 15000 -> "Super Active"
@@ -290,7 +293,7 @@ fun ProgressCard(steps: Long, goal: Int) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
         elevation = CardDefaults.cardElevation(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF3FFF8))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
             modifier = Modifier.padding(24.dp),
@@ -301,7 +304,7 @@ fun ProgressCard(steps: Long, goal: Int) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val strokeWidth = with(density) { 16.dp.toPx() }
                     drawArc(
-                        color = Color(0xFFD1FAE5),
+                        color = if (isDark) Color.DarkGray else Color(0xFFD1FAE5),
                         startAngle = -90f,
                         sweepAngle = 360f,
                         useCenter = false,
@@ -322,7 +325,7 @@ fun ProgressCard(steps: Long, goal: Int) {
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Text("steps", color = Color.Gray)
+                    Text("steps", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         "${(animatedProgress * 100).toInt()}%",
                         color = Color(0xFF059669),
@@ -334,15 +337,15 @@ fun ProgressCard(steps: Long, goal: Int) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(18.dp))
-                    .background(Color.White)
-                    .border(1.5.dp, Color(0xFFE5E7EB), RoundedCornerShape(18.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(18.dp))
                     .padding(vertical = 14.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("🏅", fontSize = 18.sp)
                     Spacer(Modifier.width(10.dp))
-                    Text(achievement, fontWeight = FontWeight.SemiBold, color = Color(0xFF374151))
+                    Text(achievement, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
 
@@ -350,14 +353,14 @@ fun ProgressCard(steps: Long, goal: Int) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(18.dp))
-                    .background(Color(0xFFECFDF5))
-                    .border(1.5.dp, Color(0xFFBBF7D0), RoundedCornerShape(18.dp))
+                    .background(if (isDark) Color(0xFF065F46).copy(alpha = 0.2f) else Color(0xFFECFDF5))
+                    .border(1.5.dp, if (isDark) Color(0xFF065F46) else Color(0xFFBBF7D0), RoundedCornerShape(18.dp))
                     .padding(16.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     "🌟 Let's get moving today!",
-                    color = Color(0xFF065F46),
+                    color = if (isDark) Color(0xFFBBF7D0) else Color(0xFF065F46),
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center
                 )
@@ -405,19 +408,19 @@ private fun AutoTrackingCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Auto Tracking", fontWeight = FontWeight.SemiBold)
+                Text("Auto Tracking", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                 Text(
                     if (disabled) "Step sensor not available on this device"
                     else if (enabled) "Tracking is ON"
                     else "Tracking is OFF",
-                    color = Color(0xFF6B7280),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 13.sp
                 )
             }
@@ -438,26 +441,30 @@ fun StatItem(modifier: Modifier = Modifier, icon: ImageVector, value: String, la
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             Icon(icon, contentDescription = label, tint = iconColor, modifier = Modifier.size(32.dp))
             Spacer(Modifier.height(8.dp))
-            Text(value, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-            Text(label, color = Color.Gray, fontSize = 14.sp)
+            Text(value, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
+            Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
         }
     }
 }
 
 @Composable
 fun TipsCard() {
-    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFE0F2F1))) {
+    val isDark = LocalDarkTheme.current
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = if (isDark) Color(0xFF004D40).copy(alpha = 0.3f) else Color(0xFFE0F2F1))
+    ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("💡", modifier = Modifier.padding(end = 16.dp), fontSize = 24.sp)
             Column {
-                Text("Tip of the Day", fontWeight = FontWeight.Bold, color = Color(0xFF004D40))
-                Text("Take the stairs instead of the elevator to easily add more steps to your day!", fontSize = 14.sp, color = Color(0xFF00796B))
+                Text("Tip of the Day", fontWeight = FontWeight.Bold, color = if (isDark) Color(0xFF80CBC4) else Color(0xFF004D40))
+                Text("Take the stairs instead of the elevator to easily add more steps to your day!", fontSize = 14.sp, color = if (isDark) Color(0xFFB2DFDB) else Color(0xFF00796B))
             }
         }
     }

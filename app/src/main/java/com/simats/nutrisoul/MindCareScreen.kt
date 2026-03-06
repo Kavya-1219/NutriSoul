@@ -134,13 +134,14 @@ fun MindCareScreenContent(
     onReminderToggled: (Boolean) -> Unit
 ) {
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = { BottomNavigationBar(navController = navController) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-                .background(Color(0xFFF0F2F5))
+                .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
         ) {
             Box(
@@ -186,7 +187,7 @@ fun MindCareScreenContent(
                     .fillMaxWidth()
                     .offset(y = (-32).dp)
                     .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                    .background(Color.White)
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(24.dp)

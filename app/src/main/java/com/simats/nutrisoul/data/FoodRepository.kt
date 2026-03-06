@@ -19,11 +19,14 @@ class FoodRepository @Inject constructor(
 ) {
 
     fun observeTodayTotals(email: String): Flow<DailyTotals> {
-        return intakeDao.observeTotalsForDate(LocalDate.now(), email)
+        val safeEmail = email.trim().lowercase()
+        val today = LocalDate.now().toString() // "yyyy-MM-dd"
+        return intakeDao.observeTotalsForDate(today, safeEmail)
     }
 
     fun observeLogsBetween(email: String, startDate: LocalDate, endDate: LocalDate): Flow<List<IntakeEntity>> {
-        return intakeDao.getLogsBetween(email, startDate, endDate)
+        val safeEmail = email.trim().lowercase()
+        return intakeDao.getLogsBetween(safeEmail, startDate.toString(), endDate.toString())
     }
 
     fun searchFoods(query: String, apiKey: String): Flow<List<FoodItem>> {
@@ -42,7 +45,8 @@ class FoodRepository @Inject constructor(
     }
 
     suspend fun addFoodToDailyIntake(email: String, foodLog: FoodLog) {
-        val entity = foodLog.toEntity().copy(userEmail = email)
+        val safeEmail = email.trim().lowercase()
+        val entity = foodLog.toEntity().copy(userEmail = safeEmail, date = LocalDate.now().toString())
         intakeDao.insert(entity)
     }
 

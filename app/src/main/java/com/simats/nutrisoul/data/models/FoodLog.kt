@@ -24,7 +24,7 @@ fun FoodLog.toIntakeEntity() = IntakeEntity(
     fats = fats,
     quantity = quantity,
     mealType = mealType,
-    date = date
+    date = date.toString()
 )
 
 fun IntakeEntity.toFoodLog() = FoodLog(
@@ -36,5 +36,5 @@ fun IntakeEntity.toFoodLog() = FoodLog(
     fats = fats,
     quantity = quantity,
     mealType = mealType,
-    date = date
+    date = LocalDate.parse(date)
 )

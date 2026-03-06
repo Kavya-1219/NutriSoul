@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.simats.nutrisoul.ui.theme.LocalDarkTheme
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.LocalTime
@@ -33,9 +34,9 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun SectionHeader(icon: ImageVector, title: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(imageVector = icon, contentDescription = title, tint = Color.Gray)
+        Icon(imageVector = icon, contentDescription = title, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.width(8.dp))
-        Text(title, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+        Text(title, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
@@ -49,7 +50,7 @@ fun InfoPoint(text: String) {
                 .clip(CircleShape)
                 .background(Color(0xFF1DE9B6))
         )
-        Text(text, fontSize = 14.sp, color = Color.DarkGray, lineHeight = 20.sp)
+        Text(text, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 20.sp)
     }
 }
 
@@ -61,6 +62,7 @@ fun SleepInfoChip(
     label: String,
     containerColor: Color
 ) {
+    val isDark = LocalDarkTheme.current
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
@@ -71,10 +73,10 @@ fun SleepInfoChip(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(imageVector = icon, contentDescription = label, tint = Color(0xFF7E57C2))
+            Icon(imageVector = icon, contentDescription = label, tint = if(isDark) Color(0xFFB39DDB) else Color(0xFF7E57C2))
             Spacer(modifier = Modifier.height(4.dp))
-            Text(value, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Text(label, color = Color.Gray, fontSize = 12.sp)
+            Text(value, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
+            Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
         }
     }
 }
@@ -84,7 +86,7 @@ fun WhyStressMattersCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Row(
@@ -107,7 +109,7 @@ fun WhyStressMattersCard() {
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column {
-                Text("Why Stress & Sleep Matter for Nutrition", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Why Stress & Sleep Matter for Nutrition", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(12.dp))
                 InfoPoint(text = "Stress affects digestion and appetite regulation")
                 InfoPoint(text = "Poor sleep increases cravings and tendency to overeat")
@@ -142,9 +144,9 @@ fun FoodStressCard(
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column {
-                Text(title, fontWeight = FontWeight.Bold)
-                Text(description, fontSize = 14.sp, color = Color.DarkGray, lineHeight = 20.sp)
-                Text(subtext, fontSize = 12.sp, color = Color.Gray, lineHeight = 18.sp)
+                Text(title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(description, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 20.sp)
+                Text(subtext, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha=0.7f), lineHeight = 18.sp)
             }
         }
     }
@@ -152,6 +154,7 @@ fun FoodStressCard(
 
 @Composable
 fun FoodsToReduceStressSection() {
+    val isDark = LocalDarkTheme.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -163,24 +166,24 @@ fun FoodsToReduceStressSection() {
             title = "Magnesium-Rich Foods",
             description = "Almonds, spinach, pumpkin seeds, dark chocolate",
             subtext = "Helps calm nervous system naturally",
-            containerColor = Color(0xFFE8F5E9),
-            iconColor = Color(0xFF388E3C)
+            containerColor = if(isDark) Color(0xFF1B5E20).copy(alpha=0.3f) else Color(0xFFE8F5E9),
+            iconColor = if(isDark) Color(0xFF81C784) else Color(0xFF388E3C)
         )
         FoodStressCard(
             icon = Icons.Default.BreakfastDining,
             title = "Complex Carbohydrates",
             description = "Millets, oats, brown rice, quinoa",
             subtext = "Stabilizes mood and energy levels",
-            containerColor = Color(0xFFFFF3E0),
-            iconColor = Color(0xFFF57C00)
+            containerColor = if(isDark) Color(0xFFE65100).copy(alpha=0.3f) else Color(0xFFFFF3E0),
+            iconColor = if(isDark) Color(0xFFFFB74D) else Color(0xFFF57C00)
         )
         FoodStressCard(
             icon = Icons.Default.EmojiFoodBeverage,
             title = "Herbal Teas & Hydration",
             description = "Chamomile tea, tulsi tea, warm water with lemon",
             subtext = "Promotes relaxation and reduces tension",
-            containerColor = Color(0xFFE0F7FA),
-            iconColor = Color(0xFF0097A7)
+            containerColor = if(isDark) Color(0xFF006064).copy(alpha=0.3f) else Color(0xFFE0F7FA),
+            iconColor = if(isDark) Color(0xFF4DD0E1) else Color(0xFF0097A7)
         )
     }
 }
@@ -208,8 +211,8 @@ fun NutritionTipCard(
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column {
-                Text(title, fontWeight = FontWeight.Bold)
-                Text(description, fontSize = 14.sp, color = Color.DarkGray, lineHeight = 20.sp)
+                Text(title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(description, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 20.sp)
             }
         }
     }
@@ -217,6 +220,7 @@ fun NutritionTipCard(
 
 @Composable
 fun NutritionTipsForSleepSection() {
+    val isDark = LocalDarkTheme.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -227,38 +231,39 @@ fun NutritionTipsForSleepSection() {
             icon = Icons.Default.DinnerDining,
             title = "Light Dinner Timing",
             description = "Eat dinner 2-3 hours before bedtime for better digestion",
-            containerColor = Color(0xFFEDE7F6)
+            containerColor = if(isDark) Color(0xFF311B92).copy(alpha=0.3f) else Color(0xFFEDE7F6)
         )
         NutritionTipCard(
             icon = Icons.Default.Fastfood,
             title = "Sleep-Supporting Foods",
             description = "Include foods rich in tryptophan like milk, bananas, dates",
-            containerColor = Color(0xFFF3E5F5)
+            containerColor = if(isDark) Color(0xFF4A148C).copy(alpha=0.3f) else Color(0xFFF3E5F5)
         )
         NutritionTipCard(
             icon = Icons.Default.NoFood,
             title = "Avoid Late Stimulants",
             description = "Skip caffeine after 2 PM and avoid heavy meals at night",
-            containerColor = Color(0xFFFFEBEE)
+            containerColor = if(isDark) Color(0xFFB71C1C).copy(alpha=0.3f) else Color(0xFFFFEBEE)
         )
     }
 }
 
 @Composable
 fun WhyThisMattersInfoCard() {
+    val isDark = LocalDarkTheme.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
-        border = BorderStroke(1.dp, Color(0xFFB9F6CA))
+        colors = CardDefaults.cardColors(containerColor = if(isDark) Color(0xFF1B5E20).copy(alpha=0.3f) else Color(0xFFE8F5E9)),
+        border = BorderStroke(1.dp, if(isDark) Color(0xFF1B5E20) else Color(0xFFB9F6CA))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Why this matters:", fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
+            Text("Why this matters:", fontWeight = FontWeight.Bold, color = if(isDark) Color(0xFF81C784) else Color(0xFF2E7D32))
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 "Sleep timing and quality affect hunger hormones, digestion, and food choices. Managing stress and sleep through nutrition and simple calm tools supports your overall health goals.",
                 fontSize = 14.sp,
-                color = Color(0xFF2E7D32),
+                color = if(isDark) Color(0xFFC8E6C9) else Color(0xFF2E7D32),
                 lineHeight = 20.sp
             )
         }
@@ -303,7 +308,7 @@ fun BreathingCircle(onStop: () -> Unit) {
         )
 
         Spacer(modifier = Modifier.height(16.dp))
-        Text(phase, fontSize = 18.sp)
+        Text(phase, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
 
         Spacer(modifier = Modifier.height(24.dp))
         Button(
@@ -321,6 +326,7 @@ fun QuickCalmToolsSection(
     onStart: () -> Unit,
     onStop: () -> Unit
 ) {
+    val isDark = LocalDarkTheme.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -328,14 +334,14 @@ fun QuickCalmToolsSection(
         SectionHeader(icon = Icons.Default.SelfImprovement, title = "Quick Calm Tools")
         Text(
             "Simple breathing technique to manage stress and support mindful eating",
-            color = Color.Gray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 14.sp
         )
 
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD))
+            colors = CardDefaults.cardColors(containerColor = if (isDark) Color(0xFF1A237E).copy(alpha = 0.5f) else Color(0xFFE3F2FD))
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -349,11 +355,11 @@ fun QuickCalmToolsSection(
                     )
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
-                        Text("5-Minute Calm Breathing", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("5-Minute Calm Breathing", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
                         Text(
                             "Simple breathing pattern to calm mind before meals",
                             fontSize = 12.sp,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -389,7 +395,7 @@ fun BedtimeReminderCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5).copy(alpha = 0.5f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
     ) {
         Row(
             modifier = Modifier
@@ -399,8 +405,8 @@ fun BedtimeReminderCard(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                Text("Bedtime Reminder", fontWeight = FontWeight.Bold)
-                Text("Get notified at bedtime", color = Color.Gray)
+                Text("Bedtime Reminder", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text("Get notified at bedtime", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Switch(checked = reminderEnabled, onCheckedChange = onReminderToggled)
         }
@@ -416,7 +422,7 @@ fun WindDownDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
@@ -429,15 +435,16 @@ fun WindDownDialog(
                     modifier = Modifier.size(40.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("It's bedtime 🌙", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Text("It's bedtime 🌙", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
                 Text(
                     "Sleeping on time helps digestion and reduces cravings tomorrow.",
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Card(
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 10.dp),
@@ -451,7 +458,8 @@ fun WindDownDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             "Quality sleep helps control hunger hormones and supports mindful eating.",
-                            fontSize = 12.sp
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -478,7 +486,7 @@ fun SleepQualitySelector(
     onQualitySelected: (SleepQuality) -> Unit
 ) {
     Column {
-        Text("Sleep Quality", fontWeight = FontWeight.Medium)
+        Text("Sleep Quality", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceAround
@@ -489,7 +497,7 @@ fun SleepQualitySelector(
                     modifier = Modifier.clickable { onQualitySelected(quality) }
                 ) {
                     Text(quality.emoji, fontSize = 32.sp)
-                    Text(quality.label)
+                    Text(quality.label, color = MaterialTheme.colorScheme.onSurface)
                     RadioButton(
                         selected = selectedQuality == quality,
                         onClick = { onQualitySelected(quality) }
@@ -512,10 +520,10 @@ fun EditSleepScheduleDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
-                Text("Edit Sleep Schedule", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Text("Edit Sleep Schedule", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(24.dp))
 
                 TimePicker(label = "Bedtime", time = bedtime, onTimeChange = { bedtime = it })
@@ -550,10 +558,10 @@ fun LogSleepDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
-                Text("Log Your Sleep", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Text("Log Your Sleep", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(24.dp))
 
                 TimePicker(label = "Bedtime", time = bedtime, onTimeChange = { bedtime = it })
@@ -602,7 +610,7 @@ fun TimePicker(
     }
 
     Column {
-        Text(label, style = MaterialTheme.typography.labelLarge)
+        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
 
         OutlinedButton(
             onClick = { dialog.show() }
@@ -623,6 +631,7 @@ fun SleepTrackingSection(
     reminderEnabled: Boolean
 ) {
     val todaySleepLog = sleepLogs.firstOrNull { it.date.isEqual(LocalDate.now()) }
+    val isDark = LocalDarkTheme.current
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -630,12 +639,12 @@ fun SleepTrackingSection(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         SectionHeader(icon = Icons.Default.NightsStay, title = "Sleep Tracking")
-        Text("Quality sleep for a healthier you", color = Color.Gray, fontSize = 14.sp)
+        Text("Quality sleep for a healthier you", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
 
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
             Column(
@@ -645,25 +654,25 @@ fun SleepTrackingSection(
                 Icon(
                     imageVector = Icons.Default.NightsStay,
                     contentDescription = "Moon",
-                    tint = Color(0xFF7E57C2),
+                    tint = if(isDark) Color(0xFFB39DDB) else Color(0xFF7E57C2),
                     modifier = Modifier.size(40.dp)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Last Night's Sleep", color = Color.Gray)
+                Text("Last Night's Sleep", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (todaySleepLog != null) {
-                    Text(todaySleepLog.duration, fontSize = 48.sp, fontWeight = FontWeight.Bold)
+                    Text(todaySleepLog.duration, fontSize = 48.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 } else {
-                    Text("--", fontSize = 48.sp, fontWeight = FontWeight.Bold)
+                    Text("--", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
                 if (todaySleepLog != null) {
                     Card(
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = todaySleepLog.quality.bgColor)
+                        colors = CardDefaults.cardColors(containerColor = if(isDark) todaySleepLog.quality.bgColor.copy(alpha=0.3f) else todaySleepLog.quality.bgColor)
                     ) {
                         Row(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("${todaySleepLog.quality.emoji} ${todaySleepLog.quality.label}", fontWeight = FontWeight.Medium, fontSize = 16.sp, color = todaySleepLog.quality.color)
+                            Text("${todaySleepLog.quality.emoji} ${todaySleepLog.quality.label}", fontWeight = FontWeight.Medium, fontSize = 16.sp, color = if(isDark) Color.White else todaySleepLog.quality.color)
                         }
                     }
                 }
@@ -678,14 +687,14 @@ fun SleepTrackingSection(
                         icon = Icons.Default.Alarm,
                         value = sleepSchedule.bedtime.format(DateTimeFormatter.ofPattern("h:mm a")),
                         label = "Bedtime",
-                        containerColor = Color(0xFFF3E5F5)
+                        containerColor = if(isDark) Color(0xFF4A148C).copy(alpha=0.3f) else Color(0xFFF3E5F5)
                     )
                     SleepInfoChip(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Default.TrendingUp,
                         value = "${String.format("%.1f", weeklyAverageHours)}h",
                         label = "7-Day Avg",
-                        containerColor = Color(0xFFF3E5F5)
+                        containerColor = if(isDark) Color(0xFF4A148C).copy(alpha=0.3f) else Color(0xFFF3E5F5)
                     )
                 }
                 Spacer(modifier = Modifier.height(24.dp))
@@ -713,11 +722,12 @@ fun SleepTrackingSection(
 
 @Composable
 fun RecentSleepHistoryCard(sleepLogs: List<SleepLog>) {
+    val isDark = LocalDarkTheme.current
     if (sleepLogs.isNotEmpty()) {
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5).copy(alpha = 0.5f))
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 SectionHeader(icon = Icons.Default.History, title = "Recent Sleep History")
@@ -729,7 +739,7 @@ fun RecentSleepHistoryCard(sleepLogs: List<SleepLog>) {
                         Card(
                             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = log.quality.bgColor)
+                            colors = CardDefaults.cardColors(containerColor = if(isDark) log.quality.bgColor.copy(alpha=0.3f) else log.quality.bgColor)
                         ) {
                             Row(
                                 modifier = Modifier.padding(16.dp).fillMaxWidth(),
@@ -737,12 +747,12 @@ fun RecentSleepHistoryCard(sleepLogs: List<SleepLog>) {
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column {
-                                    Text(log.date.format(DateTimeFormatter.ofPattern("dd MMM yyyy")), fontWeight = FontWeight.Bold)
-                                    Text("🌙 ${log.bedtime.format(DateTimeFormatter.ofPattern("h:mm a"))} - ☀️ ${log.wakeTime.format(DateTimeFormatter.ofPattern("h:mm a"))}", color = Color.Gray)
+                                    Text(log.date.format(DateTimeFormatter.ofPattern("dd MMM yyyy")), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                    Text("🌙 ${log.bedtime.format(DateTimeFormatter.ofPattern("h:mm a"))} - ☀️ ${log.wakeTime.format(DateTimeFormatter.ofPattern("h:mm a"))}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
-                                    Text("${log.quality.emoji} ${log.quality.label}", fontWeight = FontWeight.Medium, color = log.quality.color)
-                                    Text(log.duration, color = Color.Gray, fontWeight = FontWeight.Bold)
+                                    Text("${log.quality.emoji} ${log.quality.label}", fontWeight = FontWeight.Medium, color = if(isDark) Color.White else log.quality.color)
+                                    Text(log.duration, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }

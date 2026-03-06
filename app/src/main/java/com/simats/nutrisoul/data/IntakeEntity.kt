@@ -2,7 +2,6 @@ package com.simats.nutrisoul.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import java.time.LocalDate
 
 @Entity(tableName = "daily_intake")
 data class IntakeEntity(
@@ -24,7 +23,7 @@ data class IntakeEntity(
 
     val mealType: String,     // breakfast, lunch, dinner, snack
 
-    val date: LocalDate,      // today
+    val date: String,         // e.g. "2026-03-05"
 
     val timestamp: Long = System.currentTimeMillis()
 )

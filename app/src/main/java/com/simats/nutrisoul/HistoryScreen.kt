@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.simats.nutrisoul.ui.theme.LocalDarkTheme
 
 @Composable
 fun HistoryScreen(
@@ -31,101 +32,100 @@ fun HistoryScreen(
 ) {
     val state by viewModel.historyData.collectAsState()
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Background
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-        )
-
-        // Header (gradient + rounded bottom)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(260.dp)
-                .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color(0xFF00C853), Color(0xFF00A94E))
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = { BottomNavigationBar(navController = navController) }
+    ) { innerPadding ->
+        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            // Header (gradient + rounded bottom)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp)
+                    .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color(0xFF00C853), Color(0xFF00A94E))
+                        )
                     )
-                )
-                .padding(horizontal = 20.dp, vertical = 18.dp)
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 18.dp)
             ) {
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    IconButton(
-                        onClick = { navController.popBackStack() }
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
+                        IconButton(
+                            onClick = { navController.popBackStack() }
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Text(
+                            text = "History",
+                            color = Color.White,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp))
-
                     Text(
-                        text = "History",
-                        color = Color.White,
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.SemiBold
+                        text = "Your nutrition journey",
+                        color = Color.White.copy(alpha = 0.85f),
+                        fontSize = 16.sp,
+                        modifier = Modifier.padding(start = 56.dp, top = 6.dp)
                     )
-                }
 
-                Text(
-                    text = "Your nutrition journey",
-                    color = Color.White.copy(alpha = 0.85f),
-                    fontSize = 16.sp,
-                    modifier = Modifier.padding(start = 56.dp, top = 6.dp)
-                )
+                    Spacer(modifier = Modifier.height(18.dp))
 
-                Spacer(modifier = Modifier.height(18.dp))
-
-                // Summary Stats card (glass look)
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 6.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.18f)),
-                    shape = RoundedCornerShape(18.dp)
-                ) {
-                    Row(
+                    // Summary Stats card (glass look)
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(18.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .padding(top = 6.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.18f)),
+                        shape = RoundedCornerShape(18.dp)
                     ) {
-                        StatBlock(
-                            title = "Days Logged",
-                            value = state.daysLogged.toString()
-                        )
-                        StatBlock(
-                            title = "Total Meals",
-                            value = state.totalMeals.toString()
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(18.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            StatBlock(
+                                title = "Days Logged",
+                                value = state.daysLogged.toString()
+                            )
+                            StatBlock(
+                                title = "Total Meals",
+                                value = state.totalMeals.toString()
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        // Content (floating card effect)
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 18.dp)
-                .padding(top = 210.dp, bottom = 92.dp), // bottom padding for nav bar
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            items(state.dayLogs) { day ->
-                DayHistoryCard(day)
+            // Content (floating card effect)
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 18.dp)
+                    .padding(top = 210.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+                contentPadding = PaddingValues(bottom = 24.dp)
+            ) {
+                items(state.dayLogs) { day ->
+                    DayHistoryCard(day)
+                }
             }
         }
     }
@@ -151,11 +151,12 @@ private fun StatBlock(title: String, value: String) {
 
 @Composable
 private fun DayHistoryCard(day: DayLogUi) {
+    val isDark = LocalDarkTheme.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
 
@@ -175,7 +176,7 @@ private fun DayHistoryCard(day: DayLogUi) {
                     text = day.label, // Today / Yesterday / Date
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1F2937),
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -190,18 +191,18 @@ private fun DayHistoryCard(day: DayLogUi) {
                     text = "${day.totalCalories}",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1F2937)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "kcal",
                     fontSize = 14.sp,
-                    color = Color(0xFF6B7280)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            Divider(color = Color(0xFFE5E7EB))
+            Divider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(modifier = Modifier.height(12.dp))
 
             // Macros chips
@@ -212,22 +213,22 @@ private fun DayHistoryCard(day: DayLogUi) {
                 MacroChip(
                     title = "Protein",
                     value = "${day.totalProtein}g",
-                    bg = Color(0xFFEFF6FF),
-                    fg = Color(0xFF2563EB),
+                    bg = if(isDark) Color(0xFF1E3A8A).copy(alpha=0.4f) else Color(0xFFEFF6FF),
+                    fg = if(isDark) Color(0xFF93C5FD) else Color(0xFF2563EB),
                     modifier = Modifier.weight(1f)
                 )
                 MacroChip(
                     title = "Carbs",
                     value = "${day.totalCarbs}g",
-                    bg = Color(0xFFFFF7ED),
-                    fg = Color(0xFFEA580C),
+                    bg = if(isDark) Color(0xFF7C2D12).copy(alpha=0.4f) else Color(0xFFFFF7ED),
+                    fg = if(isDark) Color(0xFFFDBA74) else Color(0xFFEA580C),
                     modifier = Modifier.weight(1f)
                 )
                 MacroChip(
                     title = "Fats",
                     value = "${day.totalFats}g",
-                    bg = Color(0xFFFFFBEB),
-                    fg = Color(0xFFCA8A04),
+                    bg = if(isDark) Color(0xFF78350F).copy(alpha=0.4f) else Color(0xFFFFFBEB),
+                    fg = if(isDark) Color(0xFFFCD34D) else Color(0xFFCA8A04),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -239,13 +240,13 @@ private fun DayHistoryCard(day: DayLogUi) {
                 fontSize = 12.sp,
                 letterSpacing = 1.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF6B7280)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             day.foods.forEachIndexed { index, food ->
-                if (index != 0) Divider(color = Color(0xFFF3F4F6))
+                if (index != 0) Divider(color = MaterialTheme.colorScheme.outlineVariant)
                 FoodRow(food)
             }
         }
@@ -268,7 +269,7 @@ private fun MacroChip(
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = title, fontSize = 12.sp, color = Color(0xFF6B7280))
+            Text(text = title, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = fg)
         }
@@ -295,14 +296,14 @@ private fun FoodRow(food: LoggedFoodUi) {
                 text = food.name,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF111827),
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = food.quantity,
                 fontSize = 12.sp,
-                color = Color(0xFF6B7280)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
@@ -311,12 +312,12 @@ private fun FoodRow(food: LoggedFoodUi) {
                 text = "${food.calories} kcal",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF111827)
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = food.time,
                 fontSize = 12.sp,
-                color = Color(0xFF6B7280)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

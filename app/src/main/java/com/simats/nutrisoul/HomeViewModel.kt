@@ -33,10 +33,10 @@ class HomeViewModel @Inject constructor(
     val todayTotals: StateFlow<DailyTotalsUi> =
         sessionManager.currentUserEmailFlow()
             .flatMapLatest { email ->
-                if (email != null) {
-                    repository.observeTodayTotals(email)
-                } else {
+                if (email.isNullOrBlank()) {
                     flowOf(DailyTotals(0.0, 0.0, 0.0, 0.0))
+                } else {
+                    repository.observeTodayTotals(email)
                 }
             }
             .map { totals ->

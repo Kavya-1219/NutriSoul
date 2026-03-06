@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.simats.nutrisoul.data.SessionManager
 import com.simats.nutrisoul.data.UserViewModel
@@ -49,6 +50,10 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         handleWindDownIntent(intent)
 
         setContent {
+            val navController = rememberNavController()
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentRoute = navBackStackEntry?.destination?.route
+
             // 1️⃣ Get the current user email
             val emailState by sessionManager.currentUserEmailFlow()
                 .collectAsStateWithLifecycle(initialValue = null)
@@ -65,15 +70,38 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     )
                 )
 
-            val darkMode = settings.darkMode
+            val isDarkThemeRequested = settings.darkMode
 
-            // 3️⃣ Apply theme globally
-            NutriSoulTheme(darkTheme = darkMode) {
+            // List of routes that should ALWAYS be light theme
+            val lightOnlyRoutes = listOf(
+                Screen.Splash.route,
+                Screen.Onboarding1.route,
+                Screen.Onboarding2.route,
+                Screen.Onboarding3.route,
+                Screen.Login.route,
+                Screen.Register.route,
+                Screen.ResetPassword.route,
+                Screen.PersonalDetails.route,
+                Screen.BodyDetails.route,
+                Screen.FoodPreferences.route,
+                Screen.LifestyleAndActivity.route,
+                Screen.Goals.route,
+                Screen.GoalWeight.route,
+                Screen.HealthConditions.route,
+                Screen.HealthDetails.route,
+                Screen.MealsPerDay.route
+            )
+
+            // Normalize route comparison (remove arguments if any)
+            val baseRoute = currentRoute?.split("/")?.firstOrNull() ?: ""
+            val darkTheme = if (baseRoute in lightOnlyRoutes || currentRoute in lightOnlyRoutes) false else isDarkThemeRequested
+
+            // 3️⃣ Apply theme
+            NutriSoulTheme(darkTheme = darkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val navController = rememberNavController()
                     NavGraph(navController = navController)
                 }
             }

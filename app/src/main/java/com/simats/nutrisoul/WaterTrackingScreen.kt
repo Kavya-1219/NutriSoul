@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.simats.nutrisoul.data.UserViewModel
+import com.simats.nutrisoul.ui.theme.LocalDarkTheme
 
 @Composable
 fun WaterTrackingScreen(navController: NavController, userViewModel: UserViewModel) {
@@ -28,20 +29,22 @@ fun WaterTrackingScreen(navController: NavController, userViewModel: UserViewMod
     val dailyGoal = 2275
     var selectedGlassSize by remember { mutableStateOf(250) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF00B2FF))
-    ) {
+    Scaffold(
+        containerColor = Color(0xFF00B2FF),
+        bottomBar = { BottomNavigationBar(navController = navController) }
+    ) { innerPadding ->
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .background(Color(0xFF00B2FF))
         ) {
             WaterTrackingHeader(navController)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
-                    .background(Color.White)
+                    .background(MaterialTheme.colorScheme.background)
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -58,6 +61,7 @@ fun WaterTrackingScreen(navController: NavController, userViewModel: UserViewMod
                 )
                 WaterStats(dailyGoal)
                 HydrationBenefits()
+                Spacer(Modifier.height(16.dp))
             }
         }
     }
@@ -107,7 +111,7 @@ private fun WaterProgress(waterIntake: Int, dailyGoal: Int) {
             modifier = Modifier.fillMaxSize(),
             strokeWidth = 16.dp,
             color = Color(0xFF00B2FF),
-            trackColor = Color(0xFFE0E0E0).copy(alpha = 0.5f)
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
         )
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
@@ -119,10 +123,11 @@ private fun WaterProgress(waterIntake: Int, dailyGoal: Int) {
             Text(
                 "$waterIntake",
                 fontSize = 48.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
-            Text("ml / $dailyGoal", color = Color.Gray)
-            Text("$percentage %", color = Color.Gray)
+            Text("ml / $dailyGoal", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("$percentage %", color = Color(0xFF00B2FF), fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -131,17 +136,18 @@ private fun WaterProgress(waterIntake: Int, dailyGoal: Int) {
 private fun TodayProgress(waterIntake: Int) {
     val glasses = waterIntake / 250
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("Today's Progress", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+        Text("Today's Progress", fontWeight = FontWeight.SemiBold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
         Text("$glasses / 10 glasses", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00B2FF))
-        Text("(250ml per glass)", color = Color.Gray)
+        Text("(250ml per glass)", color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 private fun HydrationJourneyMessage() {
+    val isDark = LocalDarkTheme.current
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)),
+        colors = CardDefaults.cardColors(containerColor = if(isDark) Color(0xFF01579B).copy(alpha=0.3f) else Color(0xFFE3F2FD)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -150,7 +156,7 @@ private fun HydrationJourneyMessage() {
         ) {
             Icon(Icons.Default.WbSunny, contentDescription = null, tint = Color(0xFFFFC107))
             Spacer(Modifier.width(8.dp))
-            Text("Start your hydration journey today!", fontWeight = FontWeight.SemiBold)
+            Text("Start your hydration journey today!", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
@@ -159,7 +165,7 @@ private fun HydrationJourneyMessage() {
 private fun GlassSizeSelector(selectedGlass: Int, onGlassSizeSelected: (Int) -> Unit) {
     val glassSizes = listOf(200, 250, 300, 350, 400, 500)
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("Glass Size", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+        Text("Glass Size", fontWeight = FontWeight.SemiBold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
         Spacer(Modifier.height(12.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -186,13 +192,13 @@ private fun GlassSizeButton(size: Int, selectedGlass: Int, onGlassSizeSelected: 
     Button(
         onClick = { onGlassSizeSelected(size) },
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (selectedGlass == size) Color(0xFF00B2FF) else Color.White
+            containerColor = if (selectedGlass == size) Color(0xFF00B2FF) else MaterialTheme.colorScheme.surface
         ),
         shape = RoundedCornerShape(12.dp),
         elevation = if (selectedGlass != size) ButtonDefaults.buttonElevation(defaultElevation = 2.dp) else null,
-        border = if (selectedGlass != size) BorderStroke(1.dp, Color.LightGray.copy(alpha=0.5f)) else null
+        border = if (selectedGlass != size) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null
     ) {
-        Text("${size}ml", color = if (selectedGlass == size) Color.White else Color.Black)
+        Text("${size}ml", color = if (selectedGlass == size) Color.White else MaterialTheme.colorScheme.onSurface)
     }
 }
 
@@ -201,10 +207,11 @@ private fun WaterActionButtons(onAdd: () -> Unit, onRemove: () -> Unit, glassSiz
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         Button(
             onClick = onRemove,
-            colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray.copy(alpha=0.5f)),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             modifier = Modifier.weight(1f)
         ) {
             Icon(Icons.Default.Remove, contentDescription = "Remove")
+            Spacer(Modifier.width(4.dp))
             Text("Remove")
         }
         Spacer(Modifier.width(16.dp))
@@ -213,8 +220,9 @@ private fun WaterActionButtons(onAdd: () -> Unit, onRemove: () -> Unit, glassSiz
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00B2FF)),
             modifier = Modifier.weight(1f)
         ) {
-            Icon(Icons.Default.Add, contentDescription = "Add")
-            Text("Add ${glassSize}ml")
+            Icon(Icons.Default.Add, contentDescription = "Add", tint = Color.White)
+            Spacer(Modifier.width(4.dp))
+            Text("Add ${glassSize}ml", color = Color.White)
         }
     }
 }
@@ -224,27 +232,27 @@ private fun WaterStats(dailyGoal: Int) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         Card(
             modifier = Modifier.weight(1f),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            border = BorderStroke(1.dp, Color.LightGray.copy(alpha=0.5f))
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         ) {
             Column(Modifier.padding(16.dp)) {
                 Icon(Icons.Default.TrackChanges, contentDescription = null, tint = Color(0xFF00C853))
-                Text("Daily Goal", fontWeight = FontWeight.Bold)
+                Text("Daily Goal", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 Text("$dailyGoal ml", color = Color(0xFF00C853), fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                Text("10 glasses")
+                Text("10 glasses", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         Spacer(Modifier.width(16.dp))
         Card(
             modifier = Modifier.weight(1f),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            border = BorderStroke(1.dp, Color.LightGray.copy(alpha=0.5f))
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         ) {
             Column(Modifier.padding(16.dp)) {
                 Icon(Icons.Default.BarChart, contentDescription = null, tint = Color(0xFF00B2FF))
-                Text("7-Day Avg", fontWeight = FontWeight.Bold)
+                Text("7-Day Avg", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 Text("0ml", color = Color(0xFF00B2FF), fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                Text("0% of goal")
+                Text("0% of goal", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -254,12 +262,12 @@ private fun WaterStats(dailyGoal: Int) {
 private fun HydrationBenefits() {
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA)),
-        border = BorderStroke(1.dp, Color.LightGray.copy(alpha=0.5f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Benefits of Hydration", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Benefits of Hydration", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.height(12.dp))
             BenefitItem("Boosts metabolism - Helps burn more calories")
             BenefitItem("Reduces appetite - Helps with weight management")
@@ -277,6 +285,6 @@ private fun BenefitItem(text: String) {
     ) {
         Icon(Icons.Default.WaterDrop, contentDescription = null, tint = Color(0xFF00B2FF), modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(8.dp))
-        Text(text, color = Color.Gray, fontSize = 14.sp)
+        Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
     }
 }

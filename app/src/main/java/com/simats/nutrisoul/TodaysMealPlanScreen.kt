@@ -25,6 +25,7 @@ import com.simats.nutrisoul.data.meal.model.totalCalories
 import com.simats.nutrisoul.data.meal.model.totalCarbs
 import com.simats.nutrisoul.data.meal.model.totalFats
 import com.simats.nutrisoul.data.meal.model.totalProtein
+import com.simats.nutrisoul.ui.theme.LocalDarkTheme
 import kotlin.math.min
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,6 +41,8 @@ fun TodaysMealPlanScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = { BottomNavigationBar(navController = navController) },
         topBar = {
             TopAppBar(
                 title = { Text("Today's Meal Plan") },
@@ -52,11 +55,17 @@ fun TodaysMealPlanScreen(
                     IconButton(onClick = { viewModel.refresh() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
         }
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        Box(Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background)) {
             when (val s = uiState) {
                 is MealPlanUiState.Loading -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -66,7 +75,7 @@ fun TodaysMealPlanScreen(
 
                 is MealPlanUiState.Error -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(s.message)
+                        Text(s.message, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
 
@@ -114,19 +123,21 @@ fun TodaysMealPlanScreen(
 
         ModalBottomSheet(
             onDismissRequest = { showSheet = false },
-            sheetState = sheetState
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface
         ) {
             Column(Modifier.fillMaxWidth().padding(16.dp)) {
                 Text(
                     text = "Change ${mealType.replaceFirstChar { it.uppercase() }}",
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = "Pick an alternative meal (instant swap).",
                     fontSize = 13.sp,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(12.dp))
 
@@ -212,21 +223,22 @@ private fun PremiumHeader(plan: MealPlan) {
 
 @Composable
 private fun PersonalizedBanner(goal: String, diet: String) {
+    val isDark = LocalDarkTheme.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFFEAF2FF), RoundedCornerShape(18.dp))
+            .background(if(isDark) Color(0xFF1E3A8A).copy(alpha=0.3f) else Color(0xFFEAF2FF), RoundedCornerShape(18.dp))
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color(0xFF2F5BEA))
+        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = if(isDark) Color(0xFF93C5FD) else Color(0xFF2F5BEA))
         Spacer(Modifier.width(10.dp))
         Column {
-            Text("Personalized for Your Goals", fontWeight = FontWeight.Bold, color = Color(0xFF1A3DBA))
+            Text("Personalized for Your Goals", fontWeight = FontWeight.Bold, color = if(isDark) Color(0xFF93C5FD) else Color(0xFF1A3DBA))
             Text(
                 "This plan is customized for ${goal.replace('_', ' ')} and your $diet diet.",
                 fontSize = 12.sp,
-                color = Color(0xFF1A3DBA)
+                color = if(isDark) Color(0xFFA5B4FC) else Color(0xFF1A3DBA)
             )
         }
     }
@@ -234,34 +246,36 @@ private fun PersonalizedBanner(goal: String, diet: String) {
 
 @Composable
 private fun MealCard(meal: Meal, onEdit: () -> Unit) {
+    val isDark = LocalDarkTheme.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(mealIcon(meal.mealType), contentDescription = null, tint = Color.Gray)
+                Icon(mealIcon(meal.mealType), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.width(8.dp))
-                Text(meal.mealType.replaceFirstChar { it.uppercase() }, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(meal.mealType.replaceFirstChar { it.uppercase() }, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit")
+                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.onSurface)
                 }
             }
 
-            Text(meal.title, color = Color.Gray, fontSize = 14.sp)
+            Text(meal.title, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
             Spacer(Modifier.height(12.dp))
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                MacroChip("Calories", "${meal.calories}", Color(0xFFE8F5E9), Color(0xFF2E7D32))
-                MacroChip("Protein", "${meal.protein}g", Color(0xFFE3F2FD), Color(0xFF1565C0))
-                MacroChip("Carbs", "${meal.carbs}g", Color(0xFFFFF3E0), Color(0xFFEF6C00))
-                MacroChip("Fats", "${meal.fats}g", Color(0xFFFFEBEE), Color(0xFFC62828))
+                MacroChip("Calories", "${meal.calories}", if(isDark) Color(0xFF064E3B).copy(alpha=0.4f) else Color(0xFFE8F5E9), if(isDark) Color(0xFFA7F3D0) else Color(0xFF2E7D32))
+                MacroChip("Protein", "${meal.protein}g", if(isDark) Color(0xFF1E3A8A).copy(alpha=0.4f) else Color(0xFFE3F2FD), if(isDark) Color(0xFF93C5FD) else Color(0xFF1565C0))
+                MacroChip("Carbs", "${meal.carbs}g", if(isDark) Color(0xFF7C2D12).copy(alpha=0.4f) else Color(0xFFFFF3E0), if(isDark) Color(0xFFFDBA74) else Color(0xFFEF6C00))
+                MacroChip("Fats", "${meal.fats}g", if(isDark) Color(0xFF7F1D1D).copy(alpha=0.4f) else Color(0xFFFFEBEE), if(isDark) Color(0xFFFECACA) else Color(0xFFC62828))
             }
 
             Spacer(Modifier.height(12.dp))
-            Text("ITEMS", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray)
+            Text("ITEMS", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             Spacer(Modifier.height(8.dp))
             meal.items.forEach { item ->
@@ -270,19 +284,19 @@ private fun MealCard(meal: Meal, onEdit: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text(item.name, fontWeight = FontWeight.SemiBold)
-                        Text(item.quantity, fontSize = 12.sp, color = Color(0xFF2E7D32))
+                        Text(item.name, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                        Text(item.quantity, fontSize = 12.sp, color = Color(0xFF2ECC71))
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text("${item.calories} kcal", fontWeight = FontWeight.Bold)
+                        Text("${item.calories} kcal", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         Text(
                             "P:${item.protein}g C:${item.carbs}g F:${item.fats}g",
                             fontSize = 10.sp,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
-                Divider(color = Color(0xFFF0F0F0))
+                Divider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         }
     }
@@ -306,20 +320,20 @@ private fun AlternativeMealRow(meal: Meal, onSelect: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onSelect() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(mealIcon(meal.mealType), contentDescription = null, tint = Color.Gray)
+            Icon(mealIcon(meal.mealType), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
-                Text(meal.title, fontWeight = FontWeight.SemiBold)
+                Text(meal.title, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                 Text(
                     "${meal.calories} kcal • P ${meal.protein}g • C ${meal.carbs}g • F ${meal.fats}g",
                     fontSize = 12.sp,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Text("Select", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
@@ -329,17 +343,18 @@ private fun AlternativeMealRow(meal: Meal, onSelect: () -> Unit) {
 
 @Composable
 private fun InfoNote() {
+    val isDark = LocalDarkTheme.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5))
+        colors = CardDefaults.cardColors(containerColor = if(isDark) Color(0xFF4A148C).copy(alpha=0.2f) else Color(0xFFF3E5F5))
     ) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.Top) {
-            Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF6A1B9A))
+            Icon(Icons.Default.Info, contentDescription = null, tint = if(isDark) Color(0xFFCE93D8) else Color(0xFF6A1B9A))
             Spacer(Modifier.width(10.dp))
             Text(
                 "Note: This meal plan is generated based on your profile. Tap edit to swap meals or refresh to generate a new plan.",
-                color = Color(0xFF4A148C),
+                color = if(isDark) Color(0xFFE1BEE7) else Color(0xFF4A148C),
                 fontSize = 12.sp
             )
         }
