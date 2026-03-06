@@ -67,18 +67,11 @@ fun OnboardingScreen(onNextClicked: () -> Unit, onSkipClicked: () -> Unit) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Card(
-                shape = CircleShape,
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                modifier = Modifier.size(200.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo2),
-                    contentDescription = "Onboarding Image",
-                    modifier = Modifier.fillMaxSize().padding(16.dp)
-                )
-            }
+            Image(
+                painter = painterResource(id = R.drawable.logo2),
+                contentDescription = "Onboarding Image",
+                modifier = Modifier.size(200.dp)
+            )
             Spacer(modifier = Modifier.height(64.dp))
             Text(
                 text = "Your Personal Nutrition Assistant",
