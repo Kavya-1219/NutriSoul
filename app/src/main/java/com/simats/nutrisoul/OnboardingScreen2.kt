@@ -67,7 +67,6 @@ fun OnboardingScreen2(onNextClicked: () -> Unit, onSkipClicked: () -> Unit) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Using a Box wrapper for centering, removing the large manual offset
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
