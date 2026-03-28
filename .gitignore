@@ -1,0 +1,13 @@
+local.properties
+.gradle/
+build/
+.idea/
+*.iml
+.DS_Store
+capture_recordings/
+
+# NutriSoul custom ignore
+*.txt
+*.log
+/app/release/
+/app/src/main/java/com/simats/nutrisoul/LogFoodViewModel.kt_temp_onImageSelected.txt
